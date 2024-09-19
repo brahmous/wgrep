@@ -1,18 +1,12 @@
-﻿#include <iostream>
+#include <iostream>
 #include <map>
 #include <vector>
 #include <memory>
-#include <stack>
-#include <unordered_map>
 
 constexpr const wchar_t UNION = '|';
-constexpr const wchar_t CONCATENATION = 'ε';
+constexpr const wchar_t CONCATENATION = '~';
+constexpr const wchar_t EPSILON = 'ε';
 constexpr const wchar_t KLEENE = '*';
-
-/*
-	1 (t) [(c, 2)(e, 4)]
-	2 (f) []
-*/	
 
 class State {
 public:
@@ -40,16 +34,14 @@ public:
 		epsilon_transitions = std::move(other.epsilon_transitions);
 		accepting = other.accepting;
 	}
-	
-	int id = 0;
 
 	~State() = default;
 };
 
+void print_stat(const State& state)
+{
 
-/*
-	make DFS matcher/printer
-*/
+}
 
 class Fragment{
 public:
@@ -86,8 +78,8 @@ class NFA
 {
 public:
 	// Union
-	template <typename T, typename N, const wchar_t C = U, std::enable_if_t<C == UNION, bool> = true>
-	NFA(const T& s1, const N& s2)
+	template <typename T, const wchar_t C = U, std::enable_if_t<C == UNION, bool> = true>
+	NFA(const T& s1, const T& s2)
 		: start_state{ std::make_shared<State>(false) }
 	{
 		std::shared_ptr<State> accepting_state = std::make_shared<State>(true);
@@ -129,7 +121,6 @@ public:
 		// Go out of the machine to the accepting state
 		if (std::shared_ptr<State> s_accepting_state = s.end_state.lock()) {
 			s_accepting_state->epsilon_transitions.push_back(accepting_state);
-			s_accepting_state->accepting = false;
 		}
 		else {
 			throw std::runtime_error("error accpeting state");
@@ -139,16 +130,43 @@ public:
 
 		end_state = accepting_state;
 	}
+	// EPSILON
+	template <typename T, const wchar_t C = U, std::enable_if_t<C == EPSILON, bool> = true>
+	NFA(const T& s1, const T& s2)
+		: start_state{ s1.start_state }
+	{
+		if (std::shared_ptr<State> s1_accepting_state = s1.end_state.lock()) {
+			s1_accepting_state->accepting = false;
+			s1_accepting_state->epsilon_transitions.push_back(s2.start_state);
+		}
+		else {
+			throw std::runtime_error("Reference error first");
+		}
 
+		if (std::shared_ptr<State> s2_accepting_state = s2.end_state.lock()) {
+			s2_accepting_state->accepting = true;
+			end_state = s2_accepting_state;
+		}
+		else {
+			throw std::runtime_error("Reference error second");
+		}
+
+	}
 	// CONCATENATION
-	template <typename T, typename N, const wchar_t C = U, std::enable_if_t<(C == CONCATENATION), bool> = true>
-	NFA(const T& s1, const N& s2, const wchar_t character)
+	template <typename T, const wchar_t C = U, std::enable_if_t<(C != UNION && C != KLEENE && C != EPSILON), bool> = true>
+	NFA(const T& s1, const T& s2, const wchar_t character)
 		: start_state{ s1.start_state } {
 		std::cout << "Concatenation constructor called\n" << std::endl;
 		if (std::shared_ptr<State> s1_accepting_state = s1.end_state.lock())
 		{
-			s1_accepting_state->epsilon_transitions.push_back(s2.start_state);
 			s1_accepting_state->accepting = false;
+			std::map <const wchar_t, std::vector<std::shared_ptr<State>>>::iterator transition = s1_accepting_state->transitions.find(character);
+			if (transition == s1_accepting_state->transitions.end()) {
+				s1_accepting_state->transitions.insert(std::make_pair(character, std::vector<std::shared_ptr<State>>({ s2.start_state })));
+			}
+			else {
+				transition->second.push_back(s2.start_state);
+			}
 		}
 		else {
 			throw std::runtime_error("Reference error first");
