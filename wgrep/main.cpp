@@ -112,5 +112,19 @@ int main(int argc, char* argv[])
 
 	NFA<UNION> n1{f1, f2};
 
+	//State s5;
+	//State s6;
+
+	//Fragment f3(s5, s6, 'c');
+
+	//State s7;
+	//State s8;
+
+	//Fragment f4(s7, s8, 'd');
+
+	//NFA<UNION> n2{ f3, f4 };
+
+	//NFA<CONCATENATION> n3(n1, n2);
+
 	std::cout << n1 << std::endl;
 };

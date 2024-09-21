@@ -214,6 +214,7 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 		id++;
 		number_of_states++;
 	}
+
 	std::vector<wchar_t> alphabet_s;
 	alphabet_s.push_back(L' ');
 
@@ -222,7 +223,7 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 		alphabet_s.push_back( letter.first );
 	}
 	std::sort(alphabet_s.begin(), alphabet_s.end());
-
+	alphabet_s.push_back(L'e');
 
 	std::vector<std::vector<std::wstring>> mtx(number_of_states + 1, std::vector<std::wstring>(alphabet_s.size()));
 
@@ -234,8 +235,22 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 
 	for (std::size_t i = 1; i < number_of_states + 1; i++)
 	{
-		mtx[i][0] = std::to_wstring(i);
+		std::map<std::size_t, std::shared_ptr<State>>::iterator state_pair = id_state_map.find(i);
+		if (i == 1) {
+			mtx[i][0] = L">" + std::to_wstring(i);
+		}
+		else if (state_pair->second->accepting) {
+			mtx[i][0] = L"'"+std::to_wstring(i);
+		}
+		else {
+			mtx[i][0] = std::to_wstring(i);
+		}
 	}
+
+	/*for (std::size_t i = 1; i < number_of_states + 1; i++)
+	{
+		mtx[i][0] = std::to_wstring(i);
+	}*/
 
 	for (std::size_t i = 1; i < number_of_states + 1; i++) {
 		std::map <std::size_t, std::shared_ptr<State>>::iterator state = id_state_map.find(i);
@@ -243,13 +258,14 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 			throw std::runtime_error("no transition found");
 		}
 		else {
-			for (std::size_t j = 1; j < alphabet_s.size(); j++) {
+			for (std::size_t j = 1; j < alphabet_s.size()-1; j++) {
 				std::map<const wchar_t, std::vector<std::shared_ptr<State>>>::iterator transition = state->second->transitions.find(alphabet_s[j]);
 				if (transition == state->second->transitions.end()) {
 					mtx[i][j] = L"-";
 				}
 				else {
-					std::wstring entry = L"{";
+					//std::wstring entry = L"{";
+					std::wstring entry = L"";
 					for (std::vector<std::shared_ptr<State>>::iterator s = transition->second.begin();
 						s != transition->second.end();
 						s++)
@@ -267,25 +283,43 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 							throw std::runtime_error("some error here");
 						}
 					}
-					entry += L"}";
+					//entry += L"}";
 					mtx[i][j] = entry;
 				}
 			}
+			std::wstring epscl = L"";
+			for (std::shared_ptr<State> s : state->second->epsilon_transitions) {
+				epscl += std::to_wstring(state_id_map.find(s.get())->second) + L",";
+			}
+			epscl += std::to_wstring(state_id_map.find(state->second.get())->second);
+			mtx[i][alphabet_s.size() - 1] = epscl;
 		}
 	}
 
-	std::cout << "Alphabet: ";
+	std::vector<std::size_t> maxs(alphabet_s.size());
 
-	for (std::wstring sr : mtx[0]) {
-		std::wcout << sr << " ";
-	}
-	std::cout << "\n";
-
-	for (std::vector<std::wstring> row : mtx) {
-		for (std::wstring cell : row) {
-			std::wcout << cell << "|";
+	for (std::size_t j = 0; j < alphabet_s.size(); j++) {
+		std::size_t max = 1;
+		for (std::size_t i = 0; i < number_of_states + 1; i++) {
+			if (mtx[i][j].size() > max) {
+				max = mtx[i][j].size();
+			}
 		}
-		std::wcout << "\n";
+		maxs[j] = max;
+	}
+
+	for (std::size_t i = 0; i < number_of_states + 1; i++) {
+		for (std::size_t j = 0; j < alphabet_s.size(); j++) {
+			std::wstring str = L"";
+			for (int s = 0; s < 2; s++) str += L" ";
+			str += mtx[i][j];
+			for (int s = 0; s < maxs[j] - mtx[i][j].size(); s++) {
+				str += L" ";
+			}
+			for (int s = 0; s < 2; s++) str += L" ";
+			std::wcout << str << "|";
+		}
+		std::cout << "\n";
 	}
 
 	return out;
