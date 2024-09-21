@@ -111,15 +111,6 @@ int main(int argc, char* argv[])
 	Fragment f2(s3, s4, 'b');
 
 	NFA<UNION> n1{f1, f2};
-	NFA<KLEENE> n2{n1};
 
-
-	State s5;
-	State s6;
-
-	Fragment f3(s5, s6, 'j');
-
-	NFA<CONCATENATION> n3(n2, f3, 'c');
-	
-	print(n3);
+	std::cout << n1 << std::endl;
 };
