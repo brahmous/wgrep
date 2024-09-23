@@ -1,15 +1,21 @@
-#include <iostream>
+﻿#include <iostream>
 #include <cassert>
 #include <unordered_map>
 #include "../engine/nfa.h"
 #include <queue>
+#include <clocale>
 
-class Num {
-public:
-	int value;
-	Num(int number) : value{ number }
-	{}
-};
+//#include <iostream>
+//#include <fcntl.h>
+//#include <io.h>
+//
+//
+//class Num {
+//public:
+//	int value;
+//	Num(int number) : value{ number }
+//	{}
+//};
 //
 //class Obj {
 //public:
@@ -100,31 +106,22 @@ void print(const T& s) {
 
 int main(int argc, char* argv[])
 {
-	State s1;
-	State s2;
 
-	Fragment f1(s1, s2, 'a');
-
-	State s3;
-	State s4;
-
-	Fragment f2(s3, s4, 'b');
-
+	Fragment f1('a');
+	Fragment f2('b');
 	NFA<UNION> n1{f1, f2};
-
-	//State s5;
-	//State s6;
-
-	//Fragment f3(s5, s6, 'c');
-
-	//State s7;
-	//State s8;
-
-	//Fragment f4(s7, s8, 'd');
-
-	//NFA<UNION> n2{ f3, f4 };
-
-	//NFA<CONCATENATION> n3(n1, n2);
-
+	Fragment f3('c');
+	Fragment f4('d');
+	NFA<UNION> n2{ f3, f4 };
+	NFA<CONCATENATION> n3(n1, n2);
 	std::cout << n1 << std::endl;
+
+ 
+	//_setmode(_fileno(stdout), _O_U16TEXT);
+	//wchar_t c = L'\u03B5';
+	//std::wcout << c << std::endl;
+	//std::string str = u8"\u03b5";
+	//std::cout << str << std::endl;
+
+	return 0;
 };

@@ -11,20 +11,10 @@ constexpr const wchar_t UNION = '|';
 constexpr const wchar_t CONCATENATION = 'ε';
 constexpr const wchar_t KLEENE = '*';
 
-/*
-	1 (t) [(c, 2)(e, 4)]
-	2 (f) []
-*/
-
-/*
-	std::cout << NFA
-	=> table.
-*/
-
 class State {
 public:
-	std::map<const wchar_t, std::vector<std::shared_ptr<State>>> transitions;
-	std::vector<std::shared_ptr<State>> epsilon_transitions;
+	std::map<char, std::vector<std::shared_ptr<State>>> transitions; 
+	std::vector<std::shared_ptr<State>> epsilon_transitions; 
 	bool accepting;
 
 	State(bool accepting = false) : accepting{ accepting }
@@ -54,32 +44,20 @@ public:
 };
 
 
-/*
-	make DFS matcher/printer
-*/
-
 class Fragment {
 public:
-	// TODO: Should I take these as non const Rvalue references?
-	Fragment(const State& s1, const State& s2)
-		: start_state{ std::make_shared<State>(s1) }
+	Fragment()
+		: start_state{ std::make_shared<State>(false) }
 	{
-		std::shared_ptr<State> accepting_state = std::make_shared<State>(s2);
-
-		start_state->accepting = false;
-		accepting_state->accepting = true;
-
+		std::shared_ptr<State> accepting_state = std::make_shared<State>(true);
 		start_state->epsilon_transitions.push_back(accepting_state);
 		end_state = accepting_state;
 	}
 
-	// TODO: Should I take these as non const Rvalue references?
-	Fragment(const State& s1, const State& s2, const wchar_t character)
-		: start_state{ std::make_shared<State>(s1) }
+	Fragment(char character)
+		: start_state{ std::make_shared<State>(false) }
 	{
-		std::shared_ptr<State> accepting_state = std::make_shared<State>(s2);
-		start_state->accepting = false;
-		accepting_state->accepting = true;
+		std::shared_ptr<State> accepting_state = std::make_shared<State>(true);
 		start_state->transitions.insert(std::make_pair(character, std::vector<std::shared_ptr<State>>({ accepting_state })));
 		end_state = accepting_state;
 	}
@@ -88,12 +66,12 @@ public:
 	std::weak_ptr<State> end_state;
 };
 
-template <const wchar_t U>
+template <wchar_t U>
 class NFA
 {
 public:
 	// Union
-	template <typename T, typename N, const wchar_t C = U, std::enable_if_t<C == UNION, bool> = true>
+	template <typename T, typename N, wchar_t C = U, std::enable_if_t<C == UNION, bool> = true>
 	NFA(const T& s1, const N& s2)
 		: start_state{ std::make_shared<State>(false) }
 	{
@@ -122,18 +100,15 @@ public:
 		end_state = accepting_state;
 	}
 	// KLEENE
-	template <typename T, const wchar_t C = U, std::enable_if_t<C == KLEENE, bool> = true>
+	template <typename T, wchar_t C = U, std::enable_if_t<C == KLEENE, bool> = true>
 	NFA(const T& s)
 		: start_state{ std::make_shared<State>(false) }
 	{
 		std::cout << "KLEENE CONSTRUCTOR" << std::endl;
 
 		std::shared_ptr<State> accepting_state = std::make_shared<State>(true);
-		// Skip the machine 
 		start_state->epsilon_transitions.push_back(accepting_state);
-		// Or enter the machine
 		start_state->epsilon_transitions.push_back(s.start_state);
-		// Go out of the machine to the accepting state
 		if (std::shared_ptr<State> s_accepting_state = s.end_state.lock()) {
 			s_accepting_state->epsilon_transitions.push_back(accepting_state);
 			s_accepting_state->accepting = false;
@@ -141,14 +116,13 @@ public:
 		else {
 			throw std::runtime_error("error accpeting state");
 		}
-		// Renter the machine from the accepting state
 		accepting_state->epsilon_transitions.push_back(s.start_state);
 
 		end_state = accepting_state;
 	}
 
 	// CONCATENATION
-	template <typename T, typename N, const wchar_t C = U, std::enable_if_t<(C == CONCATENATION), bool> = true>
+	template <typename T, typename N, wchar_t C = U, std::enable_if_t<(C == CONCATENATION), bool> = true>
 	NFA(const T& s1, const N& s2)
 		: start_state{ s1.start_state } {
 		std::cout << "Concatenation constructor called\n" << std::endl;
@@ -174,13 +148,14 @@ public:
 	std::weak_ptr<State> end_state;
 };
 
-template <const wchar_t C>
+
+template <wchar_t C>
 std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 {
 	std::size_t id = 1;
 	std::map<std::size_t, std::shared_ptr<State>> id_state_map;
 	std::map<State*, std::size_t> state_id_map;
-	std::map<const wchar_t, bool> alphabet;
+	std::map<char, bool> alphabet;
 
 	std::queue<std::shared_ptr<State>> queue;
 	std::map<State*, bool> visited;
@@ -195,7 +170,7 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 		std::shared_ptr<State> current = queue.front();
 		state_id_map.insert({ current.get(), id });
 		id_state_map.insert({ id, current });
-		for (std::pair <const wchar_t, std::vector<std::shared_ptr<State>>> ts : current->transitions)
+		for (std::pair <char, std::vector<std::shared_ptr<State>>> ts : current->transitions)
 		{
 			alphabet.insert({ ts.first, true });
 			for (std::shared_ptr<State> s : ts.second) {
@@ -215,19 +190,18 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 		number_of_states++;
 	}
 
-	std::vector<wchar_t> alphabet_s;
-	alphabet_s.push_back(L' ');
+	std::vector<char> alphabet_s;
+	alphabet_s.push_back(' ');
 
-	for (std::pair<const wchar_t, bool> letter : alphabet)
+	for (std::pair<char, bool> letter : alphabet)
 	{
 		alphabet_s.push_back( letter.first );
 	}
 	std::sort(alphabet_s.begin(), alphabet_s.end());
-	alphabet_s.push_back(L'e');
+	alphabet_s.push_back('*');
 
-	std::vector<std::vector<std::wstring>> mtx(number_of_states + 1, std::vector<std::wstring>(alphabet_s.size()));
+	std::vector<std::vector<std::string>> mtx(number_of_states + 1, std::vector<std::string>(alphabet_s.size()));
 
-	// TODO: loop and convert to wstring
 	for (std::size_t i = 0; i < alphabet_s.size(); i++)
 	{
 		mtx[0][i] = alphabet_s[i];
@@ -237,20 +211,16 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 	{
 		std::map<std::size_t, std::shared_ptr<State>>::iterator state_pair = id_state_map.find(i);
 		if (i == 1) {
-			mtx[i][0] = L">" + std::to_wstring(i);
+			mtx[i][0] = ">" + std::to_string(i);
 		}
 		else if (state_pair->second->accepting) {
-			mtx[i][0] = L"'"+std::to_wstring(i);
+			mtx[i][0] = "'"+std::to_string(i);
 		}
 		else {
-			mtx[i][0] = std::to_wstring(i);
+			mtx[i][0] = std::to_string(i);
 		}
 	}
 
-	/*for (std::size_t i = 1; i < number_of_states + 1; i++)
-	{
-		mtx[i][0] = std::to_wstring(i);
-	}*/
 
 	for (std::size_t i = 1; i < number_of_states + 1; i++) {
 		std::map <std::size_t, std::shared_ptr<State>>::iterator state = id_state_map.find(i);
@@ -259,13 +229,12 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 		}
 		else {
 			for (std::size_t j = 1; j < alphabet_s.size()-1; j++) {
-				std::map<const wchar_t, std::vector<std::shared_ptr<State>>>::iterator transition = state->second->transitions.find(alphabet_s[j]);
+				std::map<char, std::vector<std::shared_ptr<State>>>::iterator transition = state->second->transitions.find(alphabet_s[j]);
 				if (transition == state->second->transitions.end()) {
-					mtx[i][j] = L"-";
+					mtx[i][j] = "-";
 				}
 				else {
-					//std::wstring entry = L"{";
-					std::wstring entry = L"";
+					std::string entry = "";
 					for (std::vector<std::shared_ptr<State>>::iterator s = transition->second.begin();
 						s != transition->second.end();
 						s++)
@@ -273,25 +242,24 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 						std::map<State*, std::size_t>::iterator state_id = state_id_map.find(s->get());
 						if (state_id != state_id_map.end()) {
 							if (s == transition->second.end() - 1) {
-								entry += std::to_wstring(state_id->second);
+								entry += std::to_string(state_id->second);
 							}
 							else {
-								entry += std::to_wstring(state_id->second) + L",";
+								entry += std::to_string(state_id->second) + ",";
 							}
 						}
 						else {
 							throw std::runtime_error("some error here");
 						}
 					}
-					//entry += L"}";
 					mtx[i][j] = entry;
 				}
 			}
-			std::wstring epscl = L"";
+			std::string epscl = "";
 			for (std::shared_ptr<State> s : state->second->epsilon_transitions) {
-				epscl += std::to_wstring(state_id_map.find(s.get())->second) + L",";
+				epscl += std::to_string(state_id_map.find(s.get())->second) + ",";
 			}
-			epscl += std::to_wstring(state_id_map.find(state->second.get())->second);
+			epscl += std::to_string(state_id_map.find(state->second.get())->second);
 			mtx[i][alphabet_s.size() - 1] = epscl;
 		}
 	}
@@ -310,14 +278,14 @@ std::ostream& operator << (std::ostream& out, const NFA<C>& nfa)
 
 	for (std::size_t i = 0; i < number_of_states + 1; i++) {
 		for (std::size_t j = 0; j < alphabet_s.size(); j++) {
-			std::wstring str = L"";
-			for (int s = 0; s < 2; s++) str += L" ";
+			std::string str = "";
+			for (int s = 0; s < 2; s++) str += " ";
 			str += mtx[i][j];
 			for (int s = 0; s < maxs[j] - mtx[i][j].size(); s++) {
-				str += L" ";
+				str += " ";
 			}
-			for (int s = 0; s < 2; s++) str += L" ";
-			std::wcout << str << "|";
+			for (int s = 0; s < 2; s++) str += " ";
+			std::cout << str << "|";
 		}
 		std::cout << "\n";
 	}
