@@ -143,7 +143,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="nfa.h" />
+    <ClCompile Include="nfa.cpp" />
+    <ClCompile Include="nfa_old.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="nfa.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
