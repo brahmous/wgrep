@@ -9,10 +9,6 @@
 
 int main(int argc, char* argv[])
 {
-
-	NFA n1('a');
-	NFA n2 (n1);
-
-	std::cout << "here";
-
+  NFA n1('a');
+  n1.repeat(3);
 };

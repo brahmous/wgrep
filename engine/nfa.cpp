@@ -2,11 +2,8 @@
 #include <iostream>
 
 State::State(const State& other) {
-  std::cout << "state copy constructor\n";
 
-  // see if it exists
-  getCopyMap().insert({&other, std::shared_ptr<State>(this)});
-
+  this->set_accepting(other.accepting());
   for (std::pair<char, std::vector<std::shared_ptr<State>>> old : other.get_transitions()) {
     std::pair<trns_t::iterator, bool> new_trns =
       _trns.insert({ old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
@@ -16,6 +13,7 @@ State::State(const State& other) {
 
       if (dest == getCopyMap().end()) {
         new_trns.first->second[i] = std::make_shared<State>(*(old.second.at(i)));
+        State::getCopyMap().insert({ old.second.at(i).get(), new_trns.first->second[i] });
       }
       else {
         new_trns.first->second[i] = dest->second;
@@ -25,9 +23,7 @@ State::State(const State& other) {
 };
 
 State& State::operator=(const State& other) {
-  std::cout << "state copy operator\n";
-
-  State::getCopyMap().insert({&other, std::shared_ptr<State>(this)});
+  this->set_accepting(other.accepting());
 
   for (std::pair<char, std::vector<std::shared_ptr<State>>> old : other.get_transitions()) {
     std::pair<trns_t::iterator, bool> new_trns =
@@ -38,6 +34,7 @@ State& State::operator=(const State& other) {
 
       if (dest == State::getCopyMap().end()) {
         new_trns.first->second[i] = std::make_shared<State>(*(old.second.at(i)));
+        State::getCopyMap().insert({ old.second.at(i).get(), new_trns.first->second[i] });
       }
       else {
         new_trns.first->second[i] = dest->second;
@@ -60,13 +57,14 @@ void State::set_accepting(bool accepting) { this->_accepting = accepting; };
 void State::add_transition(const char c, std::shared_ptr<State> state) {
   // see if there is a transition from char
   std::map<char, std::vector<std::shared_ptr<State>>>::iterator tr_over_char =
-      _trns.find(c);
+    _trns.find(c);
   // if there isn't create one
   // else push_back
   if (tr_over_char == _trns.end()) {
     _trns.insert(
-        std::make_pair(c, std::vector<std::shared_ptr<State>>({state})));
-  } else {
+      std::make_pair(c, std::vector<std::shared_ptr<State>>({ state })));
+  }
+  else {
     tr_over_char->second.push_back(state);
   }
 };
@@ -95,36 +93,45 @@ NFA::NFA(const char character) {
 };
 
 NFA::NFA(const NFA& other) {
-  std::cout << "nfa copy constructor\n";
+  State::getCopyMap().insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
 
-  _start_state = std::make_shared<State>(*(other.entry()));
-  
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator new_exit =
-    State::getCopyMap().find(other.exit().get());
-
-  if (new_exit != State::getCopyMap().end()) {
-    _end_state = new_exit->second;
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = State::getCopyMap().find(other.entry().get());
+  if (entry == State::getCopyMap().end()) {
+    throw std::runtime_error("couldn't find entry");
   }
   else {
-    throw std::runtime_error("couldn't find new pointer of exit!");
+    _start_state = entry->second;
   }
-  //visited.clear();
+
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = State::getCopyMap().find(other.exit().get());
+  if (exit == State::getCopyMap().end()) {
+    throw std::runtime_error("couldn't find exit");
+  }
+  else {
+    _end_state = exit->second;
+  }
+  State::getCopyMap().clear();
 }
 
 NFA& NFA::operator=(const NFA& other) {
-  std::cout << "nfa = operator\n";
-  _start_state = std::make_shared<State>(*(other.entry()));
+  State::getCopyMap().insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator new_exit =
-    State::getCopyMap().find(other.exit().get());
-
-  if (new_exit != State::getCopyMap().end()) {
-    _end_state = new_exit->second;
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = State::getCopyMap().find(other.entry().get());
+  if (entry == State::getCopyMap().end()) {
+    throw std::runtime_error("couldn't find entry");
   }
   else {
-    throw std::runtime_error("coudn't find new pointer of exit!");
+    _start_state = entry->second;
   }
-  //visited.clear();
+
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = State::getCopyMap().find(other.exit().get());
+  if (exit == State::getCopyMap().end()) {
+    throw std::runtime_error("couldn't find exit");
+  }
+  else {
+    _end_state = exit->second;
+  }
+  State::getCopyMap().clear();
   return *this;
 }
 
@@ -143,7 +150,8 @@ NFA& NFA::concat(NFA& nfa) {
   if (std::shared_ptr<State> old_acc_state = _end_state.lock()) {
     old_acc_state->set_accepting(false);
     old_acc_state->add_eps_transition(nfa.entry());
-  } else {
+  }
+  else {
     throw std::runtime_error("end state cannot be turned into shared pointer");
   }
   _end_state = nfa.exit();
@@ -196,7 +204,11 @@ NFA& NFA::repeat() {
 
 NFA& NFA::repeat(std::size_t n) {
   // make n copies and connect them with epsilon transitions.
-  std::vector<NFA> machines(n, *this);
+  std::vector<NFA> machines;
+
+  for (size_t i = 0; i < n; i++) {
+    machines.push_back(NFA(*this));
+  }
 
   for (std::size_t i = 0; i < n - 1; i++) {
     machines[i].concat(machines[i + 1]);
@@ -210,7 +222,11 @@ NFA& NFA::repeat(std::size_t n) {
 }
 
 NFA& NFA::atmost(const std::size_t n) {
-  std::vector<NFA> machines(n, *this);
+  std::vector<NFA> machines;
+
+  for (size_t i = 0; i < n; i++) {
+    machines.push_back(*this);
+  }
 
   std::shared_ptr<State> last_machine_exit = machines[n - 1].exit();
 
@@ -228,7 +244,8 @@ NFA& NFA::atmost(const std::size_t n) {
 NFA& NFA::atleast(const std::size_t n) {
   if (n == 1) {
     this->exit()->add_eps_transition(this->entry());
-  } else {
+  }
+  else {
     std::vector<NFA> machines(n, *this);
     for (std::size_t i = 0; i < n - 1; i++) {
       machines[i].concat(machines[i + 1]);
@@ -244,9 +261,11 @@ NFA& NFA::atleast(const std::size_t n) {
 NFA& NFA::between(const std::size_t n, const std::size_t m) {
   if (m < n) {
     throw std::runtime_error("n must be smaller than n!");
-  } else if (n == m) {
+  }
+  else if (n == m) {
     this->repeat(n);
-  } else {
+  }
+  else {
     NFA atmost = *this;
     atmost.atmost(m - n);
     this->repeat(n);

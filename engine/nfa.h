@@ -8,6 +8,7 @@
 #include <vector>
 #include <unordered_map>
 
+
 class State {
  public:
   using trns_t = std::map<char, std::vector<std::shared_ptr<State>>>;
