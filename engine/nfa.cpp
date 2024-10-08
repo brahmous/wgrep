@@ -1,6 +1,9 @@
 #include "nfa.h"
 #include <iostream>
 
+static std::unordered_map<const State*, std::shared_ptr<State>> visited;
+static std::shared_ptr<State> dead_state = std::make_shared<State>(false);
+
 State::State(const State& other) {
 
   this->set_accepting(other.accepting());
@@ -9,11 +12,11 @@ State::State(const State& other) {
       _trns.insert({ old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
 
     for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest = State::getCopyMap().find(old.second.at(i).get());
+      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest = visited.find(old.second.at(i).get());
 
-      if (dest == getCopyMap().end()) {
+      if (dest == visited.end()) {
         new_trns.first->second[i] = std::make_shared<State>(*(old.second.at(i)));
-        State::getCopyMap().insert({ old.second.at(i).get(), new_trns.first->second[i] });
+        visited.insert({ old.second.at(i).get(), new_trns.first->second[i] });
       }
       else {
         new_trns.first->second[i] = dest->second;
@@ -30,11 +33,11 @@ State& State::operator=(const State& other) {
       _trns.insert({ old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
 
     for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest = State::getCopyMap().find(old.second.at(i).get());
+      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest = visited.find(old.second.at(i).get());
 
-      if (dest == State::getCopyMap().end()) {
+      if (dest == visited.end()) {
         new_trns.first->second[i] = std::make_shared<State>(*(old.second.at(i)));
-        State::getCopyMap().insert({ old.second.at(i).get(), new_trns.first->second[i] });
+        visited.insert({ old.second.at(i).get(), new_trns.first->second[i] });
       }
       else {
         new_trns.first->second[i] = dest->second;
@@ -85,53 +88,53 @@ void State::add_eps_transition(std::shared_ptr<State> state) {
   _etrs.push_back(state);
 };
 
-NFA::NFA(const char character) {
-  _start_state = std::make_shared<State>(false);
+NFA::NFA(const char character): _start_state {std::make_shared<State>(false)}
+{
   std::shared_ptr<State> end_state = std::make_shared<State>(true);
   _start_state->add_transition(character, end_state);
   _end_state = end_state;
 };
 
 NFA::NFA(const NFA& other) {
-  State::getCopyMap().insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
+  visited.insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = State::getCopyMap().find(other.entry().get());
-  if (entry == State::getCopyMap().end()) {
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = visited.find(other.entry().get());
+  if (entry == visited.end()) {
     throw std::runtime_error("couldn't find entry");
   }
   else {
     _start_state = entry->second;
   }
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = State::getCopyMap().find(other.exit().get());
-  if (exit == State::getCopyMap().end()) {
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = visited.find(other.exit().get());
+  if (exit == visited.end()) {
     throw std::runtime_error("couldn't find exit");
   }
   else {
     _end_state = exit->second;
   }
-  State::getCopyMap().clear();
+  visited.clear();
 }
 
 NFA& NFA::operator=(const NFA& other) {
-  State::getCopyMap().insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
+  visited.insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = State::getCopyMap().find(other.entry().get());
-  if (entry == State::getCopyMap().end()) {
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = visited.find(other.entry().get());
+  if (entry == visited.end()) {
     throw std::runtime_error("couldn't find entry");
   }
   else {
     _start_state = entry->second;
   }
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = State::getCopyMap().find(other.exit().get());
-  if (exit == State::getCopyMap().end()) {
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = visited.find(other.exit().get());
+  if (exit == visited.end()) {
     throw std::runtime_error("couldn't find exit");
   }
   else {
     _end_state = exit->second;
   }
-  State::getCopyMap().clear();
+  visited.clear();
   return *this;
 }
 
@@ -207,7 +210,7 @@ NFA& NFA::repeat(std::size_t n) {
   std::vector<NFA> machines;
 
   for (size_t i = 0; i < n; i++) {
-    machines.push_back(NFA(*this));
+    machines.push_back(*this);
   }
 
   for (std::size_t i = 0; i < n - 1; i++) {
@@ -232,6 +235,10 @@ NFA& NFA::atmost(const std::size_t n) {
 
   for (std::size_t i = 0; i < n - 1; i++) {
     machines[i].concat(machines[i + 1]);
+  }
+
+  for (std::size_t i = 0; i < n; i++)
+  {
     machines[i].entry()->add_eps_transition(last_machine_exit);
   }
 
@@ -246,10 +253,16 @@ NFA& NFA::atleast(const std::size_t n) {
     this->exit()->add_eps_transition(this->entry());
   }
   else {
-    std::vector<NFA> machines(n, *this);
+    std::vector<NFA> machines;
+
+    for (int i = 0; i < n; i++) {
+      machines.push_back(*this);
+    }
+
     for (std::size_t i = 0; i < n - 1; i++) {
       machines[i].concat(machines[i + 1]);
     }
+
     machines[n - 1].atleast(1);
     _start_state = machines[0].entry();
     _end_state = machines[n - 1].exit();
@@ -268,6 +281,7 @@ NFA& NFA::between(const std::size_t n, const std::size_t m) {
   else {
     NFA atmost = *this;
     atmost.atmost(m - n);
+
     this->repeat(n);
     this->concat(atmost);
   }
@@ -275,16 +289,9 @@ NFA& NFA::between(const std::size_t n, const std::size_t m) {
   return *this;
 }
 
-NFA& NFA::exclude(char character) {
-  std::shared_ptr<State> dead_state = std::make_shared<State>(false);
-  std::shared_ptr<State> accepting_state = std::make_shared<State>(true);
-  std::shared_ptr<State> exit_state = this->exit();
-  exit_state->set_accepting(false);
-  exit_state->add_transition(character, dead_state);
-  exit_state->add_transition(0x0, accepting_state);
-
-  _end_state = accepting_state;
-
+NFA& NFA::exclude(const char character)
+{
+  this->entry()->add_transition(character, dead_state);
   return *this;
 }
 

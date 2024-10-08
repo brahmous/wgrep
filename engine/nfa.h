@@ -14,11 +14,6 @@ class State {
   using trns_t = std::map<char, std::vector<std::shared_ptr<State>>>;
   using etrns_t = std::vector<std::shared_ptr<State>>;
 
-  static std::unordered_map<const State*, std::shared_ptr<State>>& getCopyMap() {
-    static std::unordered_map<const State*, std::shared_ptr<State>> map;
-    return map;
-  }
-
   State(bool accepting = false) : _accepting{accepting} {};
 
   State(const State& other);
@@ -73,8 +68,7 @@ class NFA {
   NFA& atmost(const std::size_t count);
   NFA& atleast(const std::size_t count);
   NFA& between(const std::size_t n, std::size_t m);
-
-  NFA& exclude(char character);
+  NFA& exclude(const char character);
 
   bool match(const std::string& str);
 

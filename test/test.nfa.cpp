@@ -201,29 +201,157 @@ namespace NFAStateMachineImplementation {
     ASSERT_EQ(s4.get(), nfa.exit().get());
   }
 
-}
+  TEST(NFAOperations, NFAAtMost)
+  {
+    NFA nfa('a');
+    nfa.atmost(2);
 
-TEST(NFAOperations, NFAAtMost)
-{
-  /**/
-}
+    /*
+    ->s0-a->s1-e->s2-a-s3(v)
+    v              v    ^
+    |              |    |
+    --------e------------
+    */
 
-TEST(NFAOperations, NFAAtLeast)
-{
+    EXPECT_EQ(nfa.entry()->accepting(), false);
+    const State::etrns_t& s0_e = nfa.entry()->get_eps_transitions();
+    EXPECT_EQ(nfa.exit()->accepting(), true);
+    ASSERT_EQ(s0_e.at(0).get(), nfa.exit().get());
 
-}
+    State::trns_t::iterator s0_a = nfa.entry()->get_transition('a');
+    std::shared_ptr<State> s1 = s0_a->second.at(0);
+    EXPECT_EQ(s1->accepting(), false);
 
-TEST(NFAOperations, NFABetween)
-{
+    const State::etrns_t& s1_e = s1->get_eps_transitions();
+    std::shared_ptr<State> s2 = s1_e.at(0);
+    EXPECT_EQ(s2->accepting(), false);
 
-}
+    State::trns_t::iterator s2_a = s2->get_transition('a');
+    std::shared_ptr<State> s3_a = s2_a->second.at(0);
+    EXPECT_EQ(s3_a->accepting(), true);
+    ASSERT_EQ(s3_a.get(), nfa.exit().get());
 
-TEST(NFAOperations, NFAExclude)
-{
+    State::etrns_t s2_e = s2->get_eps_transitions();
+    std::shared_ptr<State> s3_e = s2_e.at(0);
+    EXPECT_EQ(s3_e->accepting(), true);
+    ASSERT_EQ(s3_e.get(), nfa.exit().get());
 
-}
+  }
 
-TEST(NFAOperations, NFAMatch)
-{
+  TEST(NFAOperations, NFAAtLeastOne)
+  {
+    NFA nfa('a');
+    nfa.atleast(1);
+    /*
+    ->s0- a -s1(v)
+       ^      v
+       |      |
+       ---e----
+    */
 
+    EXPECT_EQ(nfa.entry()->accepting(), false);
+    State::trns_t::iterator s0_a = nfa.entry()->get_transition('a');
+    std::shared_ptr<State> s1 = s0_a->second.at(0);
+
+    EXPECT_EQ(s1->accepting(), true);
+    ASSERT_EQ(s1.get(), nfa.exit().get());
+
+    State::etrns_t s1_e = s1->get_eps_transitions();
+    std::shared_ptr<State> s0_2 = s1_e.at(0);
+
+    ASSERT_EQ(s0_2.get(), nfa.entry().get());
+  }
+
+  TEST(NFAOperations, NFAAtLeast)
+  {
+    NFA nfa('a');
+    nfa.atleast(2);
+    /*
+    ->s0- a -s1- e -s2- a -s3
+                     ^      v
+                     |      |
+                     ---e----
+    */
+    EXPECT_EQ(nfa.entry()->accepting(), false);
+    State::trns_t::iterator s0_a = nfa.entry()->get_transition('a');
+    std::shared_ptr<State> s1 = s0_a->second.at(0);
+    EXPECT_EQ(s1->accepting(), false);
+
+    const State::etrns_t& s1_e = s1->get_eps_transitions();
+    std::shared_ptr<State> s2 = s1_e.at(0);
+    
+    EXPECT_EQ(s2->accepting(), false);
+
+    State::trns_t::iterator s2_a = s2->get_transition('a');
+    std::shared_ptr<State> s3 = s2_a->second.at(0);
+    EXPECT_EQ(s3->accepting(), true);
+    ASSERT_EQ(nfa.exit().get(), s3.get());
+
+    const State::etrns_t& s3_e = s3->get_eps_transitions();
+    std::shared_ptr<State> s2_r = s3_e.at(0);
+    EXPECT_EQ(s2_r->accepting(), false);
+    ASSERT_EQ(s2_r.get(), s2.get());
+  }
+  
+  TEST(NFAOperations, NFABetween)
+  {
+    NFA nfa('a');
+    nfa.between(2, 4);
+    /*
+                                                 ________
+                                                 |      |
+                                                 ^      v
+    ->s0- a -s1- e -s2- a -s3- e -s4- a -s5- e -s6- a -s7(v)
+                                   v                    ^
+                                   |                    |
+                                   __________e___________
+    */
+    std::shared_ptr<State> s0 = nfa.entry();
+    EXPECT_EQ(s0->accepting(), false);
+    std::shared_ptr<State> s1 = s0->get_transition('a')->second.at(0);
+    EXPECT_EQ(s1->accepting(), false);
+    std::shared_ptr<State> s2 = s1->get_eps_transitions().at(0);
+    EXPECT_EQ(s2->accepting(), false);
+    std::shared_ptr<State> s3 = s2->get_transition('a')->second.at(0);
+    EXPECT_EQ(s3->accepting(), false);
+    std::shared_ptr<State> s4 = s3->get_eps_transitions().at(0);
+    EXPECT_EQ(s4->accepting(), false);
+    std::shared_ptr<State> s5 = s4->get_transition('a')->second.at(0);
+    EXPECT_EQ(s5->accepting(), false);
+    std::shared_ptr<State> s6 = s5->get_eps_transitions().at(0);
+    EXPECT_EQ(s6->accepting(), false);
+    std::shared_ptr<State> s7 = s6->get_transition('a')->second.at(0);
+    EXPECT_EQ(s7->accepting(), true);
+    ASSERT_EQ(nfa.exit().get(), s7.get());
+    std::shared_ptr<State> s7_s4 = s4->get_eps_transitions().at(0);
+    EXPECT_EQ(s7_s4->accepting(), true);
+    ASSERT_EQ(nfa.exit().get(), s7_s4.get());
+    std::shared_ptr<State> s7_s6 = s6->get_eps_transitions().at(0);
+    EXPECT_EQ(s7_s6->accepting(), true);
+    ASSERT_EQ(nfa.exit().get(), s7_s6.get());
+    // does copying into a shared pointer decrease the ref count?
+  }
+  TEST(NFAOperations, NFAExclude)
+  {
+    NFA nfa(0x0);
+    nfa.exclude('a');
+
+    /*
+       a-s2(d)
+       ^
+       |
+    ->s0- . -s1(v)
+    */
+    EXPECT_EQ(nfa.entry()->accepting(), false);
+    std::shared_ptr<State> s1 = nfa.entry()->get_transition(0x0)->second.at(0);
+    EXPECT_EQ(s1->accepting(), true);
+    std::shared_ptr<State> s2 = nfa.entry()->get_transition('a')->second.at(0);
+    EXPECT_EQ(s2->accepting(), false);
+    ASSERT_EQ(nfa.exit().get(), s1.get());
+  }
+  //
+  //TEST(NFAOperations, NFAMatch)
+  //{
+  //
+  //}
 }

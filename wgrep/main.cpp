@@ -10,5 +10,5 @@
 int main(int argc, char* argv[])
 {
   NFA n1('a');
-  n1.repeat(3);
+  n1.between(2, 4);
 };
