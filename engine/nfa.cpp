@@ -1,21 +1,24 @@
 #include "nfa.h"
 #include <iostream>
+#include <stack>
 
 static std::unordered_map<const State*, std::shared_ptr<State>> visited;
 static std::shared_ptr<State> dead_state = std::make_shared<State>(false);
 
 State::State(const State& other) {
-
   this->set_accepting(other.accepting());
-  for (std::pair<char, std::vector<std::shared_ptr<State>>> old : other.get_transitions()) {
-    std::pair<trns_t::iterator, bool> new_trns =
-      _trns.insert({ old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
+  for (std::pair<char, std::vector<std::shared_ptr<State>>> old :
+    other.get_transitions()) {
+    std::pair<trns_t::iterator, bool> new_trns = _trns.insert(
+      { old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
 
     for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest = visited.find(old.second.at(i).get());
+      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest =
+        visited.find(old.second.at(i).get());
 
       if (dest == visited.end()) {
-        new_trns.first->second[i] = std::make_shared<State>(*(old.second.at(i)));
+        new_trns.first->second[i] =
+          std::make_shared<State>(*(old.second.at(i)));
         visited.insert({ old.second.at(i).get(), new_trns.first->second[i] });
       }
       else {
@@ -28,15 +31,18 @@ State::State(const State& other) {
 State& State::operator=(const State& other) {
   this->set_accepting(other.accepting());
 
-  for (std::pair<char, std::vector<std::shared_ptr<State>>> old : other.get_transitions()) {
-    std::pair<trns_t::iterator, bool> new_trns =
-      _trns.insert({ old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
+  for (std::pair<char, std::vector<std::shared_ptr<State>>> old :
+    other.get_transitions()) {
+    std::pair<trns_t::iterator, bool> new_trns = _trns.insert(
+      { old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
 
     for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest = visited.find(old.second.at(i).get());
+      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest =
+        visited.find(old.second.at(i).get());
 
       if (dest == visited.end()) {
-        new_trns.first->second[i] = std::make_shared<State>(*(old.second.at(i)));
+        new_trns.first->second[i] =
+          std::make_shared<State>(*(old.second.at(i)));
         visited.insert({ old.second.at(i).get(), new_trns.first->second[i] });
       }
       else {
@@ -48,11 +54,17 @@ State& State::operator=(const State& other) {
   return *this;
 }
 
-bool State::accepting() { return _accepting; }
+bool State::accepting() {
+  return _accepting;
+}
 
-const bool State::accepting() const { return _accepting; }
+const bool State::accepting() const {
+  return _accepting;
+}
 
-void State::set_accepting(bool accepting) { this->_accepting = accepting; };
+void State::set_accepting(bool accepting) {
+  this->_accepting = accepting;
+};
 
 /*
   tr: transition.
@@ -76,29 +88,38 @@ State::trns_t::iterator State::get_transition(char character) {
   return _trns.find(character);
 };
 
-State::etrns_t& State::get_eps_transitions() { return _etrs; };
+State::etrns_t& State::get_eps_transitions() {
+  return _etrs;
+};
 
-const State::etrns_t& State::get_eps_transitions() const { return _etrs; };
+const State::etrns_t& State::get_eps_transitions() const {
+  return _etrs;
+};
 
-State::trns_t& State::get_transitions() { return _trns; };
+State::trns_t& State::get_transitions() {
+  return _trns;
+};
 
-const State::trns_t& State::get_transitions() const { return _trns; };
+const State::trns_t& State::get_transitions() const {
+  return _trns;
+};
 
 void State::add_eps_transition(std::shared_ptr<State> state) {
   _etrs.push_back(state);
 };
 
-NFA::NFA(const char character): _start_state {std::make_shared<State>(false)}
-{
+NFA::NFA(const char character) : _start_state{ std::make_shared<State>(false) } {
   std::shared_ptr<State> end_state = std::make_shared<State>(true);
   _start_state->add_transition(character, end_state);
   _end_state = end_state;
 };
 
 NFA::NFA(const NFA& other) {
-  visited.insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
+  visited.insert(
+    { other.entry().get(), std::make_shared<State>(*other.entry()) });
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = visited.find(other.entry().get());
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry =
+    visited.find(other.entry().get());
   if (entry == visited.end()) {
     throw std::runtime_error("couldn't find entry");
   }
@@ -106,7 +127,8 @@ NFA::NFA(const NFA& other) {
     _start_state = entry->second;
   }
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = visited.find(other.exit().get());
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit =
+    visited.find(other.exit().get());
   if (exit == visited.end()) {
     throw std::runtime_error("couldn't find exit");
   }
@@ -117,9 +139,11 @@ NFA::NFA(const NFA& other) {
 }
 
 NFA& NFA::operator=(const NFA& other) {
-  visited.insert({ other.entry().get(), std::make_shared<State>(*other.entry()) });
+  visited.insert(
+    { other.entry().get(), std::make_shared<State>(*other.entry()) });
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry = visited.find(other.entry().get());
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator entry =
+    visited.find(other.entry().get());
   if (entry == visited.end()) {
     throw std::runtime_error("couldn't find entry");
   }
@@ -127,7 +151,8 @@ NFA& NFA::operator=(const NFA& other) {
     _start_state = entry->second;
   }
 
-  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit = visited.find(other.exit().get());
+  std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit =
+    visited.find(other.exit().get());
   if (exit == visited.end()) {
     throw std::runtime_error("couldn't find exit");
   }
@@ -237,8 +262,7 @@ NFA& NFA::atmost(const std::size_t n) {
     machines[i].concat(machines[i + 1]);
   }
 
-  for (std::size_t i = 0; i < n; i++)
-  {
+  for (std::size_t i = 0; i < n; i++) {
     machines[i].entry()->add_eps_transition(last_machine_exit);
   }
 
@@ -289,10 +313,58 @@ NFA& NFA::between(const std::size_t n, const std::size_t m) {
   return *this;
 }
 
-NFA& NFA::exclude(const char character)
-{
+NFA& NFA::exclude(const char character) {
   this->entry()->add_transition(character, dead_state);
   return *this;
 }
 
-bool match(const std::string& str) { return true; }
+bool NFA::match(const std::string& input) {
+
+  std::stack<std::pair<std::shared_ptr<State>, size_t>> stack;
+  std::unordered_map<State*, size_t> visited;
+
+  stack.push({ _start_state, 0 });
+
+  while (stack.empty() != true) {
+    std::pair<std::shared_ptr<State>, size_t> current = stack.top();
+    visited[current.first.get()] = current.second;
+    stack.pop();
+
+    size_t position = current.second;
+    if (position == input.size() && current.first->accepting() == true) {
+      return true;
+    }
+
+    if (position < input.size()) {
+
+      State::trns_t::iterator
+        letter_tr = current.first->get_transition(input[position]);
+
+      // handle epsilon transitions
+      // exclusion must be handled as a union either go to dead state or wild card
+
+      if (letter_tr == current.first->get_transitions().end()) {
+        State::trns_t::iterator wild_card_tr = current.first->get_transition(0x0);
+        if (wild_card_tr != current.first->get_transitions().end()) {
+          for (std::shared_ptr<State> s : wild_card_tr->second) {
+            stack.push({ s, position + 1 });
+          }
+        }
+      }
+      else {
+        for (std::shared_ptr<State> s : letter_tr->second) {
+          stack.push({ s, position + 1 });
+        }
+      }
+    }
+    for (std::shared_ptr<State> s : current.first->get_eps_transitions()) {
+      std::unordered_map<State*, size_t>::iterator visited_state = visited.find(s.get());
+
+      if ((visited_state == visited.end()) || (visited_state != visited.end() && visited_state->second != position)) {
+        stack.push({ s, position });
+      }
+    }
+  }
+
+  return false;
+}

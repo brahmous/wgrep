@@ -10,11 +10,11 @@
 
 
 class State {
- public:
+public:
   using trns_t = std::map<char, std::vector<std::shared_ptr<State>>>;
   using etrns_t = std::vector<std::shared_ptr<State>>;
 
-  State(bool accepting = false) : _accepting{accepting} {};
+  State(bool accepting = false) : _accepting{ accepting } {};
 
   State(const State& other);
   State& operator=(const State& other);
@@ -37,14 +37,14 @@ class State {
   const etrns_t& get_eps_transitions() const;
 
   // MAYBE: get transitions, get transition given char, get epsilon transitions
- private:
+private:
   trns_t _trns;
   etrns_t _etrs;
   bool _accepting;
 };
 
 class NFA {
- public:
+public:
   NFA() = delete;
   NFA(char c);
 
@@ -70,7 +70,7 @@ class NFA {
   NFA& between(const std::size_t n, std::size_t m);
   NFA& exclude(const char character);
 
-  bool match(const std::string& str);
+  bool match(const std::string& input);
 
   friend std::ostream& operator<<(std::ostream& out, const NFA& nfa);
 
@@ -91,7 +91,7 @@ class NFA {
     }
   }
 
- private:
+private:
   std::shared_ptr<State> _start_state;
   std::weak_ptr<State> _end_state;
 };

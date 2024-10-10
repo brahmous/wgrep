@@ -279,7 +279,7 @@ namespace NFAStateMachineImplementation {
 
     const State::etrns_t& s1_e = s1->get_eps_transitions();
     std::shared_ptr<State> s2 = s1_e.at(0);
-    
+
     EXPECT_EQ(s2->accepting(), false);
 
     State::trns_t::iterator s2_a = s2->get_transition('a');
@@ -292,7 +292,7 @@ namespace NFAStateMachineImplementation {
     EXPECT_EQ(s2_r->accepting(), false);
     ASSERT_EQ(s2_r.get(), s2.get());
   }
-  
+
   TEST(NFAOperations, NFABetween)
   {
     NFA nfa('a');
@@ -349,9 +349,113 @@ namespace NFAStateMachineImplementation {
     EXPECT_EQ(s2->accepting(), false);
     ASSERT_EQ(nfa.exit().get(), s1.get());
   }
-  //
-  //TEST(NFAOperations, NFAMatch)
-  //{
-  //
-  //}
+
+  TEST(NFAOperations, NFAMatchSingleChar)
+  {
+    NFA a('a');
+
+    EXPECT_EQ(a.match("a"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchConcatLetters) {
+    NFA ab('a');
+    ab.concat('b');
+
+    EXPECT_EQ(ab.match("ab"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchConcatNFA) {
+    NFA ab('a');
+    ab.concat('b');
+    NFA ac('a');
+    ac.concat('c');
+    ab.concat(ac);
+
+    EXPECT_EQ(ab.match("abac"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchOrChar) {
+    NFA a('a');
+    a._or('b');
+
+    EXPECT_EQ(a.match("a"), true);
+    EXPECT_EQ(a.match("b"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchOrNfa) {
+    NFA a('a');
+    NFA b('b');
+    b.concat('c').concat('d');
+    a._or(b);
+
+    EXPECT_EQ(a.match("a"), true);
+    EXPECT_EQ(a.match("bcd"), true);
+    EXPECT_EQ(a.match("acd"), false);
+  }
+
+  TEST(NFAOperations, NFAMatchExclusion) {
+    NFA a('a');
+    NFA notborc(0x0);
+    notborc.exclude('b').exclude('c');
+    a.concat(notborc);
+
+    EXPECT_EQ(a.match("ab"), false);
+    EXPECT_EQ(a.match("ac"), false);
+    EXPECT_EQ(a.match("ad"), true);
+    EXPECT_EQ(a.match("ae"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchRepeat) {
+    NFA a('a');
+    a.repeat();
+
+    EXPECT_EQ(a.match(""), true);
+    EXPECT_EQ(a.match("a"), true);
+    EXPECT_EQ(a.match("aa"), true);
+    EXPECT_EQ(a.match("aaa"), true);
+    EXPECT_EQ(a.match("aaaa"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchRepeatExactNumber) {
+    NFA a('a');
+    a.repeat(4);
+
+    EXPECT_EQ(a.match("aaa"), false);
+    EXPECT_EQ(a.match("aaaa"), true);
+    EXPECT_EQ(a.match("aaaaa"), false);
+  }
+
+  TEST(NFAOperations, NFAMatchAtmost) {
+    NFA a('a');
+    a.atmost(3);
+
+    EXPECT_EQ(a.match(""), true);
+    EXPECT_EQ(a.match("a"), true);
+    EXPECT_EQ(a.match("aa"), true);
+    EXPECT_EQ(a.match("aaa"), true);
+    EXPECT_EQ(a.match("aaaa"), false);
+  }
+
+  TEST(NFAOperations, NFAMatchAleast) {
+    NFA a('a');
+    a.atleast(3);
+
+    EXPECT_EQ(a.match("aa"), false);
+    EXPECT_EQ(a.match("aaa"), true);
+    EXPECT_EQ(a.match("aaaa"), true);
+    EXPECT_EQ(a.match("aaaaa"), true);
+    EXPECT_EQ(a.match("aaaaaa"), true);
+  }
+
+  TEST(NFAOperations, NFAMatchBetween)
+  {
+    NFA d_between_3_5('d');
+    d_between_3_5.between(3, 5);
+
+    EXPECT_EQ(d_between_3_5.match("dd"), false);
+    EXPECT_EQ(d_between_3_5.match("ddd"), true);
+    EXPECT_EQ(d_between_3_5.match("dddd"), true);
+    EXPECT_EQ(d_between_3_5.match("ddddd"), true);
+    EXPECT_EQ(d_between_3_5.match("dddddd"), false);
+  }
 }
