@@ -1,5 +1,0 @@
-﻿  parser.cpp
-  test.nfa.cpp
-  Generating Code...
-C:\Workplace\wgrep\engine\nfa.h(91,1): warning C4715: 'NFA::exit': not all control paths return a value
-  test.vcxproj -> C:\Workplace\wgrep\x64\Debug\test.exe
