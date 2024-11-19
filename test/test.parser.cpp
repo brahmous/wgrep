@@ -324,4 +324,15 @@ namespace PosixBREParser {
     EXPECT_EQ(token_stream.at(3).type, TokenType::BACK_ANCHOR);
     EXPECT_EQ(token_stream.at(4).type, TokenType::BACK_CLOSE_PAREN);
   }
+
+  TEST(Parsing, FullExpression)
+  {
+    std::string input("^a|b\\?c\\+[][:alpha:]ab(c\\d[=a=]][^(ab\\|c)+]$\\|\\(^ab[cdA-Za-z]\\)$");
+    //std::string input("^a|b\\?c\\+[][:alpha:]ab(c\\d[=a=]][^(ab\\|c)+]$\\|\\(^ab[cdA-Za-z]\\)$");
+
+
+
+    AST ast = parse(input);
+
+  }
 }

@@ -10,76 +10,6 @@
 #define LINBOUND(I) I >= 0
 #define INBOUND(I, L) UINBOUND(I, L) && LINBOUND(I)
 
-inline bool isQuantifier(const Token& token)
-{
-  static TokenType quantifiers[6]{
-    TokenType::ZERO_OR_MORE,
-    TokenType::ONE_OR_MORE,
-    TokenType::ZERO_OR_ONE,
-    TokenType::QUANTIFIER_ATLEAST,
-    TokenType::QUANTIFIER_ATMOST,
-    TokenType::QUANTIFIER_BETWEEN,
-  };
-
- for (TokenType t : quantifiers) {
-    if (t == token.type) return true;
-  }
-
-  return false;
-}
-
-AST parse_quantifier(const Token& token, AST& ast)
-{
-  switch (token.type) {
-    case TokenType::ZERO_OR_MORE:
-    {
-      return { AstType::ZERO_OR_MORE, std::make_unique<AST>(std::move(ast)) };
-    }
-    break;
-
-    case TokenType::ONE_OR_MORE:
-    {
-      return { AstType::ONE_OR_MORE, std::make_unique<AST>(std::move(ast)) };
-    }
-    break;
-
-    case TokenType::ZERO_OR_ONE:
-    {
-      return { AstType::ZERO_OR_ONE, std::make_unique<AST>(std::move(ast)) };
-    }
-    break;
-
-    case TokenType::QUANTIFIER_ATLEAST:
-    {
-      std::unique_ptr<AstQuantifier> astQuantifier = std::make_unique<AstQuantifier>();
-      astQuantifier->bounds = std::make_pair(std::get<std::pair<unsigned int, unsigned int>>(token.value).first, 0);
-      astQuantifier->bre = std::move(ast);
-      return { AstType::ATLEAST, std::move(astQuantifier)};
-    }
-    break;
-    
-    case TokenType::QUANTIFIER_ATMOST:
-    {
-      std::unique_ptr<AstQuantifier> astQuantifier = std::make_unique<AstQuantifier>();
-      astQuantifier->bounds = std::make_pair(0, std::get<std::pair<unsigned int, unsigned int>>(token.value).second);
-      astQuantifier->bre = std::move(ast);
-      return { AstType::ATMOST, std::move(astQuantifier) };
-    }
-    break;
-    
-    case TokenType::QUANTIFIER_BETWEEN:
-    {
-      std::unique_ptr<AstQuantifier> astQuantifier = std::make_unique<AstQuantifier>();
-      astQuantifier->bounds = std::get<std::pair<unsigned int, unsigned int>>(token.value);
-      astQuantifier->bre = std::move(ast);
-      return { AstType::BETWEEN, std::move(astQuantifier) };
-    }
-    break;
-  }
-
-  throw std::runtime_error("Expected quantifier found none");
-}
-
 std::vector<Token> lex(const std::string& input)
 {
   std::vector<Token> token_stream{};
@@ -423,7 +353,8 @@ AST parse_bracket(std::vector<Token>& token_stream, size_t& pos)
         if (INBOUND(pos + 2, token_stream)) {
           if (token_stream[pos + 2].type == TokenType::CHARACTER) {
             range_def.second = std::get<char>(token_stream[pos + 2].value);
-          } else if (token_stream[pos + 2].type == TokenType::COLLATING_SYMBOL) {
+          }
+          if (token_stream[pos + 2].type == TokenType::COLLATING_SYMBOL) {
             throw std::runtime_error("cannot handle callating symbols yet");
             //range.second = std::get<std::string>(token_stream[pos + 2].value);
           }
@@ -474,7 +405,6 @@ AST parse_bracket(std::vector<Token>& token_stream, size_t& pos)
     case TokenType::CLOSE_BRACKET:
     {
       ast.node = std::move(astAlternation);
-      ++pos;
       return ast;
     }
     break;
@@ -514,61 +444,37 @@ AST parse_concat(std::vector<Token>& token_stream, size_t& pos)
     }
     break;
     case TokenType::CHARACTER:
-    { 
-      AST character = { AstType::CHARACTER, std::get<char>(token_stream[pos++].value) };
+    {
+      AST ast = { AstType::CHARACTER, std::get<char>(token_stream[pos++].value)};
+      if(INBOUND(pos+1, token_stream) && token_stream[pos+1].type == TokenType::QUANTIFIER){
+	AstQuantified qAst = {parse_quantifier()};
+	// CHAR ZERO_OR_MORE
 
-      if( INBOUND(pos, token_stream) && isQuantifier(token_stream[pos])) {
-        astConcat->bres.push_back(parse_quantifier(token_stream[pos++], character));
-      } else {
-        astConcat->bres.push_back(std::move(character));
+	/// [Type: Quantifier, AST]
+      }else {
+	astConcat->bres.push_back(ast);
       }
     }
     break;
     case TokenType::WILDCARD:
     {
-      AST wildcard = { AstType::WILDCARD };
+      astConcat->bres.push_back({ AstType::WILDCARD });
       pos++;
-
-      if (INBOUND(pos, token_stream) && isQuantifier(token_stream[pos])) {
-        astConcat->bres.push_back(parse_quantifier(token_stream[pos++], wildcard));
-      }
-      else {
-        astConcat->bres.push_back(std::move(wildcard));
-      }
     }
     break;
     case TokenType::OPEN_BRACKET:
     {
-      AST bracket_expr = parse_bracket(token_stream, ++pos);
-
-      if (INBOUND(pos, token_stream) && isQuantifier(token_stream[pos])) {
-        astConcat->bres.push_back(parse_quantifier(token_stream[pos++], bracket_expr));
-      }
-      else {
-        astConcat->bres.push_back(std::move(bracket_expr));
-      }
+      astConcat->bres.push_back(parse_bracket(token_stream, ++pos));
     }
     break;
     case TokenType::BACK_OPEN_PAREN:
     {
-      AST sub_expr = parse_subexpr(token_stream, ++pos);
-      if (INBOUND(pos, token_stream) && isQuantifier(token_stream[pos])) {
-        astConcat->bres.push_back(parse_quantifier(token_stream[pos++], sub_expr));
-      }
-      else {
-        astConcat->bres.push_back(std::move(sub_expr));
-      }
+      astConcat->bres.push_back(parse_subexpr(token_stream, ++pos));
     }
     break;
     case TokenType::BACK_REFERENCE:
     {
-      AST sub_expr = parse_subexpr(token_stream, ++pos);
-      if (INBOUND(pos, token_stream) && isQuantifier(token_stream[pos])) {
-        astConcat->bres.push_back(parse_quantifier(token_stream[pos++], (sub_expr)));
-      }
-      else {
-        astConcat->bres.push_back(std::move(sub_expr));
-      }
+      astConcat->bres.push_back({ AstType::BACKREFERENCE, std::get<unsigned int>(token_stream[pos++].value) });
     }
     break;
     default:
@@ -592,8 +498,7 @@ AST parse_union(std::vector<Token>& token_stream, size_t& position)
 {
   AST ast = parse_concat(token_stream, position);
 
-  while (UINBOUND(position, token_stream) && token_stream[position].type == TokenType::UNION_OPERATOR) {
-    ++position;
+  while (UINBOUND(position, token_stream) && token_stream[position++].type == TokenType::UNION_OPERATOR) {
     AST newAst{};
     newAst.type = AstType::UNION;
     std::unique_ptr<AstUnion> unionNode = std::make_unique<AstUnion>();
@@ -615,7 +520,7 @@ AST parse_subexpr(std::vector<Token>& token_stream, size_t& pos)
 }
 
 AST parse(std::string& expression)
- {
+{
   std::vector<Token> token_stream = lex(expression);
   size_t position = 0;
 

@@ -7,14 +7,14 @@ static std::shared_ptr<State> dead_state = std::make_shared<State>(false);
 
 State::State(const State& other) {
   this->set_accepting(other.accepting());
-  for (std::pair<char, std::vector<std::shared_ptr<State>>> old :
-    other.get_transitions()) {
+  for (std::pair<char, std::vector<std::shared_ptr<State>>> old
+    : other.get_transitions()) {
     std::pair<trns_t::iterator, bool> new_trns = _trns.insert(
       { old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
 
     for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest =
-        visited.find(old.second.at(i).get());
+      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest
+        = visited.find(old.second.at(i).get());
 
       if (dest == visited.end()) {
         new_trns.first->second[i] =
@@ -24,6 +24,25 @@ State::State(const State& other) {
       else {
         new_trns.first->second[i] = dest->second;
       }
+    }
+  }
+
+  const State::etrns_t& epsilon_transitions = other.get_eps_transitions();
+
+  _etrs.reserve(epsilon_transitions.size());
+
+  //_etrs = std::vector<std::shared_ptr<State>>(epsilon_transitions.size());
+
+  for (size_t i = 0; i < epsilon_transitions.size(); i++) {
+    std::unordered_map<const State*, std::shared_ptr<State>>::iterator visited_state
+      = visited.find(epsilon_transitions.at(i).get());
+
+    if (visited_state == visited.end()) {
+      _etrs.insert(_etrs.begin()+i, std::make_shared<State>(*epsilon_transitions[i]));
+      visited.insert(std::make_pair(epsilon_transitions[i].get(), _etrs[i]));
+    }
+    else {
+      _etrs.insert(_etrs.begin()+i, visited_state->second);
     }
   }
 };
@@ -48,6 +67,24 @@ State& State::operator=(const State& other) {
       else {
         new_trns.first->second[i] = dest->second;
       }
+    }
+  }
+
+  State::etrns_t epsilon_transitions = other.get_eps_transitions();
+
+  _etrs.reserve(epsilon_transitions.size());
+
+  for (size_t i = 0; i < epsilon_transitions.size(); i++) {
+    std::unordered_map<const State*, std::shared_ptr<State>>::iterator visited_state
+      = visited.find(epsilon_transitions.at(i).get());
+
+    if (visited_state == visited.end()) {
+      //_etrs[i] = std::make_shared<State>(*epsilon_transitions[i]);
+      _etrs.insert(_etrs.begin()+i, std::make_shared<State>(*epsilon_transitions[i]));
+      visited.insert(std::make_pair(epsilon_transitions[i].get(), _etrs[i]));
+    }
+    else {
+      _etrs.insert(_etrs.begin()+i, visited_state->second);
     }
   }
 
@@ -174,7 +211,7 @@ NFA& NFA::concat(const char character) {
   return *this;
 };
 
-NFA& NFA::concat(NFA& nfa) {
+NFA& NFA::concat(NFA nfa) {
   if (std::shared_ptr<State> old_acc_state = _end_state.lock()) {
     old_acc_state->set_accepting(false);
     old_acc_state->add_eps_transition(nfa.entry());

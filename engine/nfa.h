@@ -57,7 +57,7 @@ public:
   ~NFA() = default;
 
   NFA& concat(const char c);
-  NFA& concat(NFA& nfa);
+  NFA& concat(NFA nfa);
 
   NFA& _or(const char character);
   NFA& _or(NFA& nfa);
@@ -96,5 +96,3 @@ private:
   std::weak_ptr<State> _end_state;
 };
 #endif NFA_H
-
-// 0x00000287dcabfcb0

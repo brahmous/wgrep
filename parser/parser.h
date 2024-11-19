@@ -7,14 +7,12 @@
 enum class TokenType {
   BACK_OPEN_PAREN,//subexpression
   BACK_CLOSE_PAREN,
-  BACK_OPEN_BRACE, // quantifier
-  BACK_CLOSE_BRACE,
   OPEN_BRACKET,// bracket expression
   CLOSE_BRACKET,
   ZERO_OR_MORE,// quantifier 
   ONE_OR_MORE,
   ZERO_OR_ONE,
-  BACK_REFERENCE,// backref - syntactically valid to have just a back reference semantically means nothing 
+  BACK_REFERENCE, 
   UNION_OPERATOR,// UNION
   CHARACTER,// CHARACTER
   WILDCARD,// WILDCARD
@@ -48,52 +46,47 @@ struct Token {
 enum class AstType {
   UNION,
   CONCATENATION,
-  CHARACTER,
+  CHARACTER, //*
   FRONT_ANCHOR,
   BACK_ANCHOR,
-  WILDCARD,
+  WILDCARD, 
   BACKREFERENCE,
   ALTERNATION,
-  EQUIVALENCE_CLASS,
-  CHARACTER_CLASS,
-  COLLATING_SYMBOL,
-  RANGE
+  EQUIVALENCE_CLASS, //* add flag to the node
+  CHARACTER_CLASS, //* add flag to the node
+  //* related to the key of the map and comparison method
+  COLLATING_SYMBOL,  
+  RANGE, //*
+  ZERO_OR_MORE,
+  ONE_OR_MORE,
+  ZERO_OR_ONE,
+  OPTIONAL,
+  ATLEAST,
+  ATMOST,
+  BETWEEN
 };
 
 struct AstConcat;
 struct AstUnion;
 struct AstAlternation;
-
-/*
-            [ast| 
-              type: 
-              pointers
-            ]
-
-            (p1: pointer// heap) 
-
-            {
-              left 
-              [
-                type:
-                pointer
-              ]
-              right
-              [
-                
-              ]
-            }
-
-*/
+struct AstQuantifier;
 
 struct AST {
   AstType type;
-  std::variant<std::pair<std::string, std::string>, std::string, unsigned int, char, std::unique_ptr<AstConcat>, std::unique_ptr<AstUnion>, std::unique_ptr<AstAlternation>, std::unique_ptr<AST>> node;
+  std::variant<std::pair<std::string,std::string>,
+	      std::string,
+	      unsigned int,
+	      char,
+	      std::unique_ptr<AstConcat>,
+	      std::unique_ptr<AstUnion>,
+	      std::unique_ptr<AstAlternation>,
+	      std::unique_ptr<AST>,
+	      std::unique_ptr<AstQuantifier>> node;
 };
 
 struct AstUnion {
-  struct AST left;
-  struct AST right;
+  AST left;
+  AST right;
 };
 
 struct AstConcat {
@@ -105,6 +98,10 @@ struct AstAlternation {
   std::vector<AST> bres;
 };
 
+struct AstQuantifier {
+  AST bre;
+  std::pair<unsigned int, unsigned int> bounds;
+};
 
 std::vector<Token> lex(const std::string&);
 AST parse(std::string&);
