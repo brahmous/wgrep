@@ -57,10 +57,10 @@ public:
   ~NFA() = default;
 
   NFA& concat(const char c);
-  NFA& concat(NFA nfa);
+  NFA& concat(NFA& nfa);
 
   NFA& _or(const char character);
-  NFA& _or(NFA& nfa);
+  NFA& _or(NFA nfa);
 
   NFA& repeat();
 

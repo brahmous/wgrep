@@ -52,7 +52,7 @@ AST parse_quantifier(const Token& token, AST& ast)
     case TokenType::QUANTIFIER_ATLEAST:
     {
       std::unique_ptr<AstQuantifier> astQuantifier = std::make_unique<AstQuantifier>();
-      astQuantifier->bounds = std::make_pair(std::get<std::pair<unsigned int, unsigned int>>(token.value).first, 0);
+      astQuantifier->bounds = std::make_pair(std::get<unsigned int>(token.value), 0);
       astQuantifier->bre = std::move(ast);
       return { AstType::ATLEAST, std::move(astQuantifier)};
     }
@@ -61,7 +61,7 @@ AST parse_quantifier(const Token& token, AST& ast)
     case TokenType::QUANTIFIER_ATMOST:
     {
       std::unique_ptr<AstQuantifier> astQuantifier = std::make_unique<AstQuantifier>();
-      astQuantifier->bounds = std::make_pair(0, std::get<std::pair<unsigned int, unsigned int>>(token.value).second);
+      astQuantifier->bounds = std::make_pair(0, std::get<unsigned int>(token.value));
       astQuantifier->bre = std::move(ast);
       return { AstType::ATMOST, std::move(astQuantifier) };
     }
@@ -287,6 +287,12 @@ std::vector<Token> lex(const std::string& input)
           ++position;
         }
         break;
+        case '*':
+        {
+          token_stream.push_back({ TokenType::ZERO_OR_MORE });
+          ++position;
+        }
+        break;
         case '|':
         {
           token_stream.push_back({ TokenType::UNION_OPERATOR });
@@ -396,9 +402,10 @@ AST parse_bracket(std::vector<Token>& token_stream, size_t& pos)
 
   std::unique_ptr<AstAlternation> astAlternation = std::make_unique<AstAlternation>();
 
-  astAlternation->exclude = token_stream[pos].type == TokenType::CARET;
-
-  ++pos;
+  if (token_stream[pos].type == TokenType::CARET) {
+    astAlternation->exclude = true;
+    ++pos;
+  }
 
   while (INBOUND(pos, token_stream)) {
 

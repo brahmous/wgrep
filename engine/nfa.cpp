@@ -3,88 +3,86 @@
 #include <stack>
 
 static std::unordered_map<const State*, std::shared_ptr<State>> visited;
+static std::unordered_map<const State*, bool> seen;
+static std::map<State*, std::pair<char, State*>> cycle_map;
+static std::map<State*, std::vector<State*>> cycle_map_epsilon;
+
 static std::shared_ptr<State> dead_state = std::make_shared<State>(false);
 
 State::State(const State& other) {
-  this->set_accepting(other.accepting());
-  for (std::pair<char, std::vector<std::shared_ptr<State>>> old
-    : other.get_transitions()) {
-    std::pair<trns_t::iterator, bool> new_trns = _trns.insert(
-      { old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
+  set_accepting(other.accepting());
+  seen.insert(std::make_pair(&other, true));
 
-    for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest
-        = visited.find(old.second.at(i).get());
+  auto other_transitions = other.get_transitions();
 
-      if (dest == visited.end()) {
-        new_trns.first->second[i] =
-          std::make_shared<State>(*(old.second.at(i)));
-        visited.insert({ old.second.at(i).get(), new_trns.first->second[i] });
+  for (auto other_transition : other_transitions) {
+    auto transition = _trns.insert({ other_transition.first, std::vector<std::shared_ptr<State>>(/*other_transition.second.size()*/) });
+    for(auto state: other_transition.second) {
+      if (seen.find(state.get()) == seen.end()) {
+        transition.first->second.push_back(std::make_shared<State>(*state));
+        visited.insert(std::make_pair(state.get(), (transition.first->second.back())));
       }
       else {
-        new_trns.first->second[i] = dest->second;
+        cycle_map.insert({ this, {other_transition.first, state.get()}});
       }
     }
   }
 
-  const State::etrns_t& epsilon_transitions = other.get_eps_transitions();
+  auto other_epsilon_transition = other.get_eps_transitions();
 
-  _etrs.reserve(epsilon_transitions.size());
-
-  //_etrs = std::vector<std::shared_ptr<State>>(epsilon_transitions.size());
-
-  for (size_t i = 0; i < epsilon_transitions.size(); i++) {
-    std::unordered_map<const State*, std::shared_ptr<State>>::iterator visited_state
-      = visited.find(epsilon_transitions.at(i).get());
-
-    if (visited_state == visited.end()) {
-      _etrs.insert(_etrs.begin()+i, std::make_shared<State>(*epsilon_transitions[i]));
-      visited.insert(std::make_pair(epsilon_transitions[i].get(), _etrs[i]));
+  for (auto state : other_epsilon_transition) {
+    if (seen.find(state.get()) == seen.end()) {
+      _etrs.push_back(std::make_shared<State>(*state));
+      visited.insert(std::make_pair(state.get(), _etrs.back()));
     }
     else {
-      _etrs.insert(_etrs.begin()+i, visited_state->second);
+      auto epsilon_cycles = cycle_map_epsilon.find(this);
+
+      if (epsilon_cycles == cycle_map_epsilon.end()) {
+        cycle_map_epsilon.insert({ this, std::vector<State*>(1, state.get()) });
+      }
+      else {
+        epsilon_cycles->second.push_back(state.get());
+      }
     }
   }
 };
 
 State& State::operator=(const State& other) {
-  this->set_accepting(other.accepting());
+  set_accepting(other.accepting());
+  seen.insert(std::make_pair(this, true));
 
-  for (std::pair<char, std::vector<std::shared_ptr<State>>> old :
-    other.get_transitions()) {
-    std::pair<trns_t::iterator, bool> new_trns = _trns.insert(
-      { old.first, std::vector<std::shared_ptr<State>>(old.second.size()) });
+  auto other_transitions = other.get_transitions();
 
-    for (size_t i = 0; i < old.second.size(); i++) {
-      std::unordered_map<const State*, std::shared_ptr<State>>::iterator dest =
-        visited.find(old.second.at(i).get());
-
-      if (dest == visited.end()) {
-        new_trns.first->second[i] =
-          std::make_shared<State>(*(old.second.at(i)));
-        visited.insert({ old.second.at(i).get(), new_trns.first->second[i] });
+  for (auto other_transition : other_transitions) {
+    auto transition = _trns.insert({ other_transition.first, std::vector<std::shared_ptr<State>>(/*other_transition.second.size()*/) });
+    for (auto state : other_transition.second) {
+      if (seen.find(state.get()) == seen.end()) {
+        transition.first->second.push_back(std::make_shared<State>(*state));
+        visited.insert(std::make_pair(state.get(), (transition.first->second.back())));
       }
       else {
-        new_trns.first->second[i] = dest->second;
+        cycle_map.insert({ this, { other_transition.first, state.get()} });
       }
     }
   }
 
-  State::etrns_t epsilon_transitions = other.get_eps_transitions();
+  auto other_epsilon_transition = other.get_eps_transitions();
 
-  _etrs.reserve(epsilon_transitions.size());
-
-  for (size_t i = 0; i < epsilon_transitions.size(); i++) {
-    std::unordered_map<const State*, std::shared_ptr<State>>::iterator visited_state
-      = visited.find(epsilon_transitions.at(i).get());
-
-    if (visited_state == visited.end()) {
-      //_etrs[i] = std::make_shared<State>(*epsilon_transitions[i]);
-      _etrs.insert(_etrs.begin()+i, std::make_shared<State>(*epsilon_transitions[i]));
-      visited.insert(std::make_pair(epsilon_transitions[i].get(), _etrs[i]));
+  for (auto state : other_epsilon_transition) {
+    if (seen.find(state.get()) == seen.end()) {
+      _etrs.push_back(std::make_shared<State>(*state));
+      visited.insert(std::make_pair(state.get(), _etrs.back()));
     }
     else {
-      _etrs.insert(_etrs.begin()+i, visited_state->second);
+      auto epsilon_cycles = cycle_map_epsilon.find(this);
+
+      if (epsilon_cycles == cycle_map_epsilon.end()) {
+        cycle_map_epsilon.insert({ this, std::vector<State*>(1, state.get()) });
+      }
+      else {
+        epsilon_cycles->second.push_back(state.get());
+      }
     }
   }
 
@@ -164,15 +162,45 @@ NFA::NFA(const NFA& other) {
     _start_state = entry->second;
   }
 
+  std::shared_ptr<State> sptr = other.exit();
+  std::cout << "address: " << sptr.get() << std::endl;
   std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit =
-    visited.find(other.exit().get());
+    visited.find(sptr.get());
+
   if (exit == visited.end()) {
-    throw std::runtime_error("couldn't find exit");
+     throw std::runtime_error("couldn't find exit");
   }
   else {
     _end_state = exit->second;
   }
+
+  for (auto cycle : cycle_map) {
+    auto state = visited.find(cycle.second.second);
+    if (state != visited.end()) {
+      cycle.first->add_transition(cycle.second.first, state->second);
+    }
+    else {
+      throw std::runtime_error("couldn't find the cycle in cycle_node map");
+    }
+  }
+  
+  for (auto cycle : cycle_map_epsilon) {
+    for (State* state_p : cycle.second) {
+      auto state = visited.find(state_p);
+
+      if (state != visited.end()) {
+        cycle.first->add_eps_transition(state->second);
+      }
+      else {
+        throw std::runtime_error("couldn't find the cycle in cycle_node map");
+      }
+    }
+  }
+
   visited.clear();
+  seen.clear();
+  cycle_map.clear();
+  cycle_map_epsilon.clear();
 }
 
 NFA& NFA::operator=(const NFA& other) {
@@ -188,15 +216,45 @@ NFA& NFA::operator=(const NFA& other) {
     _start_state = entry->second;
   }
 
+  std::shared_ptr<State> sptr = other.exit();
+  std::cout << "address: " << sptr.get() << std::endl;
   std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit =
-    visited.find(other.exit().get());
+    visited.find(sptr.get());
+
   if (exit == visited.end()) {
     throw std::runtime_error("couldn't find exit");
   }
   else {
     _end_state = exit->second;
   }
+
+  for (auto cycle : cycle_map) {
+    auto state = visited.find(cycle.second.second);
+    if (state != visited.end()) {
+      cycle.first->add_transition(cycle.second.first, state->second);
+    }
+    else {
+      throw std::runtime_error("couldn't find the cycle in cycle_node map");
+    }
+  }
+
+  for (auto cycle : cycle_map_epsilon) {
+    for (State* cycle_p : cycle.second) {
+      auto state = visited.find(cycle_p);
+
+      if (state != visited.end()) {
+        cycle.first->add_eps_transition(state->second);
+      }
+      else {
+        throw std::runtime_error("couldn't find the cycle in cycle_node map");
+      }
+    }
+  }
+
   visited.clear();
+  seen.clear();
+  cycle_map.clear();
+  cycle_map_epsilon.clear();
   return *this;
 }
 
@@ -211,7 +269,7 @@ NFA& NFA::concat(const char character) {
   return *this;
 };
 
-NFA& NFA::concat(NFA nfa) {
+NFA& NFA::concat(NFA& nfa) {
   if (std::shared_ptr<State> old_acc_state = _end_state.lock()) {
     old_acc_state->set_accepting(false);
     old_acc_state->add_eps_transition(nfa.entry());
@@ -232,7 +290,7 @@ NFA& NFA::_or(const char character) {
   return *this;
 };
 
-NFA& NFA::_or(NFA& nfa) {
+NFA& NFA::_or(NFA nfa) {
   // new start and end states
   // add eps transitions from new start to this start and to nfa start
   // then add eps transition from nfa end to new end and add eps transition from
@@ -275,8 +333,8 @@ NFA& NFA::repeat(std::size_t n) {
     machines.push_back(*this);
   }
 
-  for (std::size_t i = 0; i < n - 1; i++) {
-    machines[i].concat(machines[i + 1]);
+  for (std::size_t i = 1; i < n; i++) {
+    machines[0].concat(machines[i]);
   }
 
   // could be faster by using current machine as start without copy.

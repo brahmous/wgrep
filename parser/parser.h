@@ -60,7 +60,6 @@ enum class AstType {
   ZERO_OR_MORE,
   ONE_OR_MORE,
   ZERO_OR_ONE,
-  OPTIONAL,
   ATLEAST,
   ATMOST,
   BETWEEN
