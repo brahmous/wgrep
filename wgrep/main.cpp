@@ -43,7 +43,7 @@ NFA build_regexp(AST& ast)
   break;
   case AstType::CHARACTER:
   {
-    return NFA(std::get<char>(ast.node));
+    return NFA(std::string(1, std::get<char>(ast.node)));
   }
   break;
   case AstType::FRONT_ANCHOR:
@@ -53,12 +53,12 @@ NFA build_regexp(AST& ast)
   break;
   case AstType::BACK_ANCHOR:
   {
-    return NFA(0x1);
+    return NFA(std::string(1, 0x1));
   }
   break;
   case AstType::WILDCARD:
   {
-    return NFA('.');
+    return NFA(std::string(1, '.'));
   }
   break;
   case AstType::BACKREFERENCE:
@@ -169,24 +169,13 @@ NFA build_regexp(AST& ast)
 
 int main(int argc, char* argv[])
 {
-  //NFA n1('a');
-  //n1.repeat();
-  //n1.match("aa");
-  //std::string input("a\\|[cd]*\\(2348\\)");
-  //std::string input("a\\|[cd]*2346");
-  std::string input("a\\|[cd]*2");
 
+  std::string input("v\\(.[^kj]\\)a\\|[cd]*\\(2348\\)\\{1,2\\}");;
 
   AST ast = parse(input);
   NFA nfa = build_regexp(ast);
 
-  //std::cout << "Matching A => "
-  //  << (nfa.match("a") ? "Matched" : "Didn't Match") << "\n";
-
-  /*std::cout << "Matching A => "
-    << (nfa.match("cccccccd2348") ? "Matched" : "Didn't Match") << "\n";*/
-  std::cout << "Matching A => "
-    << (nfa.match("a") ? "Matched" : "Didn't Match") << "\n";
+  std::cout << "Matching A => " << (nfa.match("v.ka") ? "Matched" : "Didn't Match") << "\n";
 };
 
 

@@ -1,10 +1,10 @@
 #include "nfa.h"
 #include <iostream>
 #include <stack>
-
+/**/
 static std::unordered_map<const State*, std::shared_ptr<State>> visited;
 static std::unordered_map<const State*, bool> seen;
-static std::map<State*, std::pair<char, State*>> cycle_map;
+static std::map<State*, std::pair<State::transition_key::type, State*>> cycle_map;
 static std::map<State*, std::vector<State*>> cycle_map_epsilon;
 
 static std::shared_ptr<State> dead_state = std::make_shared<State>(false);
@@ -16,24 +16,24 @@ State::State(const State& other) {
   auto other_transitions = other.get_transitions();
 
   for (auto other_transition : other_transitions) {
-    auto transition = _trns.insert({ other_transition.first, std::vector<std::shared_ptr<State>>(/*other_transition.second.size()*/) });
-    for(auto state: other_transition.second) {
-      if (seen.find(state.get()) == seen.end()) {
-        transition.first->second.push_back(std::make_shared<State>(*state));
-        visited.insert(std::make_pair(state.get(), (transition.first->second.back())));
+    //auto transition = _transitions.insert({ other_transition.first, std::vector<std::shared_ptr<State>>(/*other_transition.second.size()*/) });
+    //for(auto state: other_transition.second) {
+      if (seen.find(other_transition.second.get()) == seen.end()) {
+        auto new_transition = _transitions.insert({ other_transition.first, std::make_shared<State>(*other_transition.second) });
+        visited.insert(std::make_pair(other_transition.second.get(), (new_transition.first->second)));
       }
       else {
-        cycle_map.insert({ this, {other_transition.first, state.get()}});
+        cycle_map.insert({ this, {other_transition.first.key(), other_transition.second.get()}});
       }
-    }
+    //}
   }
 
-  auto other_epsilon_transition = other.get_eps_transitions();
+  auto other_epsilon_transition = other.get_epsilon_transitions();
 
   for (auto state : other_epsilon_transition) {
     if (seen.find(state.get()) == seen.end()) {
-      _etrs.push_back(std::make_shared<State>(*state));
-      visited.insert(std::make_pair(state.get(), _etrs.back()));
+      _epsilon_transitions.push_back(std::make_shared<State>(*state));
+      visited.insert(std::make_pair(state.get(), _epsilon_transitions.back()));
     }
     else {
       auto epsilon_cycles = cycle_map_epsilon.find(this);
@@ -55,24 +55,24 @@ State& State::operator=(const State& other) {
   auto other_transitions = other.get_transitions();
 
   for (auto other_transition : other_transitions) {
-    auto transition = _trns.insert({ other_transition.first, std::vector<std::shared_ptr<State>>(/*other_transition.second.size()*/) });
-    for (auto state : other_transition.second) {
-      if (seen.find(state.get()) == seen.end()) {
-        transition.first->second.push_back(std::make_shared<State>(*state));
-        visited.insert(std::make_pair(state.get(), (transition.first->second.back())));
-      }
-      else {
-        cycle_map.insert({ this, { other_transition.first, state.get()} });
-      }
+    //auto transition = _transitions.insert({ other_transition.first, std::vector<std::shared_ptr<State>>(/*other_transition.second.size()*/) });
+    //for(auto state: other_transition.second) {
+    if (seen.find(other_transition.second.get()) == seen.end()) {
+      auto new_transition = _transitions.insert({ other_transition.first, std::make_shared<State>(*other_transition.second) });
+      visited.insert(std::make_pair(other_transition.second.get(), (new_transition.first->second)));
     }
+    else {
+      cycle_map.insert({ this, {other_transition.first.key(), other_transition.second.get()} });
+    }
+    //}
   }
 
-  auto other_epsilon_transition = other.get_eps_transitions();
+  auto other_epsilon_transition = other.get_epsilon_transitions();
 
   for (auto state : other_epsilon_transition) {
     if (seen.find(state.get()) == seen.end()) {
-      _etrs.push_back(std::make_shared<State>(*state));
-      visited.insert(std::make_pair(state.get(), _etrs.back()));
+      _epsilon_transitions.push_back(std::make_shared<State>(*state));
+      visited.insert(std::make_pair(state.get(), _epsilon_transitions.back()));
     }
     else {
       auto epsilon_cycles = cycle_map_epsilon.find(this);
@@ -104,48 +104,39 @@ void State::set_accepting(bool accepting) {
 /*
   tr: transition.
  */
-void State::add_transition(const char c, std::shared_ptr<State> state) {
+void State::add_transition(const State::transition_key::type str, std::shared_ptr<State> state) {
   // see if there is a transition from char
-  std::map<char, std::vector<std::shared_ptr<State>>>::iterator tr_over_char =
-    _trns.find(c);
-  // if there isn't create one
-  // else push_back
-  if (tr_over_char == _trns.end()) {
-    _trns.insert(
-      std::make_pair(c, std::vector<std::shared_ptr<State>>({ state })));
-  }
-  else {
-    tr_over_char->second.push_back(state);
-  }
+  _transitions[str] = state;
 };
 
-State::trns_t::iterator State::get_transition(char character) {
-  return _trns.find(character);
+template <typename C>
+State::transitions_t::iterator State::get_transition(C str) {
+  return _transitions.find(str);
 };
 
-State::etrns_t& State::get_eps_transitions() {
-  return _etrs;
+State::epsilon_transitions_t& State::get_epsilon_transitions() {
+  return _epsilon_transitions;
 };
 
-const State::etrns_t& State::get_eps_transitions() const {
-  return _etrs;
+const State::epsilon_transitions_t& State::get_epsilon_transitions() const {
+  return _epsilon_transitions;
 };
 
-State::trns_t& State::get_transitions() {
-  return _trns;
+State::transitions_t& State::get_transitions() {
+  return _transitions;
 };
 
-const State::trns_t& State::get_transitions() const {
-  return _trns;
+const State::transitions_t& State::get_transitions() const {
+  return _transitions;
 };
 
-void State::add_eps_transition(std::shared_ptr<State> state) {
-  _etrs.push_back(state);
+void State::add_epsilon_transition(std::shared_ptr<State> state) {
+  _epsilon_transitions.push_back(state);
 };
 
-NFA::NFA(const char character) : _start_state{ std::make_shared<State>(false) } {
+NFA::NFA(const State::transition_key::type str) : _start_state{ std::make_shared<State>(false) } {
   std::shared_ptr<State> end_state = std::make_shared<State>(true);
-  _start_state->add_transition(character, end_state);
+  _start_state->add_transition(str, end_state);
   _end_state = end_state;
 };
 
@@ -163,7 +154,6 @@ NFA::NFA(const NFA& other) {
   }
 
   std::shared_ptr<State> sptr = other.exit();
-  std::cout << "address: " << sptr.get() << std::endl;
   std::unordered_map<const State*, std::shared_ptr<State>>::iterator exit =
     visited.find(sptr.get());
 
@@ -189,7 +179,7 @@ NFA::NFA(const NFA& other) {
       auto state = visited.find(state_p);
 
       if (state != visited.end()) {
-        cycle.first->add_eps_transition(state->second);
+        cycle.first->add_epsilon_transition(state->second);
       }
       else {
         throw std::runtime_error("couldn't find the cycle in cycle_node map");
@@ -243,7 +233,7 @@ NFA& NFA::operator=(const NFA& other) {
       auto state = visited.find(cycle_p);
 
       if (state != visited.end()) {
-        cycle.first->add_eps_transition(state->second);
+        cycle.first->add_epsilon_transition(state->second);
       }
       else {
         throw std::runtime_error("couldn't find the cycle in cycle_node map");
@@ -258,11 +248,12 @@ NFA& NFA::operator=(const NFA& other) {
   return *this;
 }
 
-NFA& NFA::concat(const char character) {
+NFA& NFA::concat(const State::transition_key::type str)
+{
   std::shared_ptr<State> new_accepting_state = std::make_shared<State>(true);
   if (std::shared_ptr<State> old_accepting_state = _end_state.lock()) {
     old_accepting_state->set_accepting(false);
-    old_accepting_state->add_transition(character, new_accepting_state);
+    old_accepting_state->add_transition(str, new_accepting_state);
     _end_state = new_accepting_state;
   };
 
@@ -272,7 +263,7 @@ NFA& NFA::concat(const char character) {
 NFA& NFA::concat(NFA& nfa) {
   if (std::shared_ptr<State> old_acc_state = _end_state.lock()) {
     old_acc_state->set_accepting(false);
-    old_acc_state->add_eps_transition(nfa.entry());
+    old_acc_state->add_epsilon_transition(nfa.entry());
   }
   else {
     throw std::runtime_error("end state cannot be turned into shared pointer");
@@ -281,11 +272,12 @@ NFA& NFA::concat(NFA& nfa) {
   return *this;
 };
 
-NFA& NFA::_or(const char character) {
+NFA& NFA::_or(const State::transition_key::type str)
+{
   // take the start state and add transitiosn on it to the end state
   // MAYBE: just pass the weak ptr and there is auto conversion on the fly.
   if (std::shared_ptr<State> exit = _end_state.lock()) {
-    _start_state->add_transition(character, exit);
+    _start_state->add_transition(str, exit);
   }
   return *this;
 };
@@ -296,16 +288,16 @@ NFA& NFA::_or(NFA nfa) {
   // then add eps transition from nfa end to new end and add eps transition from
   // this end to new end
 
-  this->entry()->add_eps_transition(nfa.entry());
+  this->entry()->add_epsilon_transition(nfa.entry());
   nfa.exit()->set_accepting(false);
-  nfa.exit()->add_eps_transition(this->exit());
+  nfa.exit()->add_epsilon_transition(this->exit());
 
   return *this;
 };
 
 NFA& NFA::repeat() {
-  this->exit()->add_eps_transition(this->entry());
-  this->entry()->add_eps_transition(this->exit());
+  this->exit()->add_epsilon_transition(this->entry());
+  this->entry()->add_epsilon_transition(this->exit());
   return *this;
 };
 
@@ -358,7 +350,7 @@ NFA& NFA::atmost(const std::size_t n) {
   }
 
   for (std::size_t i = 0; i < n; i++) {
-    machines[i].entry()->add_eps_transition(last_machine_exit);
+    machines[i].entry()->add_epsilon_transition(last_machine_exit);
   }
 
   _start_state = machines[0].entry();
@@ -369,7 +361,7 @@ NFA& NFA::atmost(const std::size_t n) {
 
 NFA& NFA::atleast(const std::size_t n) {
   if (n == 1) {
-    this->exit()->add_eps_transition(this->entry());
+    this->exit()->add_epsilon_transition(this->entry());
   }
   else {
     std::vector<NFA> machines;
@@ -408,8 +400,9 @@ NFA& NFA::between(const std::size_t n, const std::size_t m) {
   return *this;
 }
 
-NFA& NFA::exclude(const char character) {
-  this->entry()->add_transition(character, dead_state);
+NFA& NFA::exclude(const State::transition_key::type str)
+{
+  this->entry()->add_transition(str, dead_state);
   return *this;
 }
 
@@ -432,33 +425,30 @@ bool NFA::match(const std::string& input) {
 
     if (position < input.size()) {
 
-      State::trns_t::iterator
-        letter_tr = current.first->get_transition(input[position]);
+      State::transitions_t::iterator letter_tr = current.first->get_transition(input[position]);
 
       // handle epsilon transitions
       // exclusion must be handled as a union either go to dead state or wild card
 
       if (letter_tr == current.first->get_transitions().end()) {
-        State::trns_t::iterator wild_card_tr = current.first->get_transition(0x0);
+        State::transitions_t::iterator wild_card_tr = current.first->get_transition(0x0);
         if (wild_card_tr != current.first->get_transitions().end()) {
-          for (std::shared_ptr<State> s : wild_card_tr->second) {
-            stack.push({ s, position + 1 });
-          }
+          stack.push({ wild_card_tr->second, position + 1 });
         }
       }
       else {
-        for (std::shared_ptr<State> s : letter_tr->second) {
-          stack.push({ s, position + 1 });
-        }
+          stack.push({ letter_tr->second, position + 1 });
       }
+
     }
-    for (std::shared_ptr<State> s : current.first->get_eps_transitions()) {
+    for (std::shared_ptr<State> s : current.first->get_epsilon_transitions()) {
       std::unordered_map<State*, size_t>::iterator visited_state = visited.find(s.get());
 
       if ((visited_state == visited.end()) || (visited_state != visited.end() && visited_state->second != position)) {
         stack.push({ s, position });
       }
     }
+
   }
 
   return false;
