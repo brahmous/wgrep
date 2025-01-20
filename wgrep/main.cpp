@@ -7,6 +7,7 @@
 #include <clocale>
 #include <vector>
 #include <memory>
+#include "utf8string.h"
 
 NFA build_regexp(AST& ast)
 {
@@ -167,15 +168,68 @@ NFA build_regexp(AST& ast)
   throw std::runtime_error("Unkown Ast node");
 }
 
+/*
+TODO:
+  figure out wildcard
+  debug example
+*/
+
 int main(int argc, char* argv[])
 {
+  //std::string input("v\\(.[^kj]\\)a\\|[cd]*\\(2348\\)\\{1,2\\}");;
+  //std::string input("[^a]");;
 
-  std::string input("v\\(.[^kj]\\)a\\|[cd]*\\(2348\\)\\{1,2\\}");;
+  //AST ast = parse(input);
+  //NFA nfa = build_regexp(ast);
 
-  AST ast = parse(input);
-  NFA nfa = build_regexp(ast);
+  //std::cout << "Matching A => " << (nfa.match("a") ? "Matched" : "Didn't Match") << "\n";
 
-  std::cout << "Matching A => " << (nfa.match("v.ka") ? "Matched" : "Didn't Match") << "\n";
+  //std::string str = "é";
+
+  //std::cout << "size = " << str.size() << "\n";
+
+  //for (int i = 0; i < str.size(); i++) {
+  //  std::cout << str.c_str()[i] << " ";
+  //}
+
+  //std::cout << "\n";
+  //std::cin >> str;
+  //std::cout << "size = " << str.size();
+
+  //for (int i = 0; i < str.size(); i++) {
+  //  std::cout << str.c_str()[i] << " ";
+  //}
+
+
+  //UTF8String str("hello");
+
+  //UTF8String::iterator sIt = str.Begin();
+
+
+  //UTF8String str;
+  //UTF8String str2("hello");
+
+  //std::string strstd = "hello";
+
+  //std::cout << strstd << "\n";
+  //*(strstd.begin()) = "hello";
+
+  //std::cout<< strstd << "\n";
+
+  /*utf8string a = "console.";
+
+  a += "log()";*/
+
+  utf8string str = "hello";
+
+  str[1] = "n";
+
+  std::cout << str << "\n";
+
+  std::sort()
+
+  return 0;
+
 };
 
 

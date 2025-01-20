@@ -40,7 +40,11 @@ enum class TokenType {
 
 struct Token {
   TokenType type;
-  std::variant<unsigned int, char, std::string, std::pair<unsigned int, unsigned int>> value;
+  std::variant<
+    unsigned int,
+    char,
+    std::string,
+    std::pair<unsigned int, unsigned int>> value;
 };
 
 enum class AstType {
