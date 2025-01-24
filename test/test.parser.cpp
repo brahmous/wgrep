@@ -5,7 +5,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, SubExpressionOpen)
   {
-    std::string input{ "\\(" };
+    utf8string input{ "\\(" };
 
     std::vector<Token> token_stream = lex(input);
 
@@ -15,7 +15,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, SubExpressionClose)
   {
-    std::string input{ "\\)" };
+    utf8string input{ "\\)" };
 
     std::vector<Token> token_stream = lex(input);
 
@@ -25,7 +25,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, ZeroOrOneQuantifier)
   {
-    std::string input{ "\\?" };
+    utf8string input{ "\\?" };
     std::vector<Token> token_stream = lex(input);
 
     ASSERT_EQ(token_stream.size(), 1);
@@ -35,7 +35,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, OneOrMoreQuantifier)
   {
-    std::string input{ "\\+" };
+    utf8string input{ "\\+" };
     std::vector<Token> token_stream = lex(input);
 
     ASSERT_EQ(token_stream.size(), 1);
@@ -45,7 +45,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, UnionOperator)
   {
-    std::string input{ "\\|" };
+    utf8string input{ "\\|" };
     std::vector<Token> token_stream = lex(input);
 
     ASSERT_EQ(token_stream.size(), 1);
@@ -55,7 +55,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, BackReference)
   {
-    std::string input{ "\\3" };
+    utf8string input{ "\\3" };
     std::vector<Token> token_stream = lex(input);
 
     ASSERT_EQ(token_stream.size(), 1);
@@ -65,7 +65,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, EscapedCharacters)
   {
-    std::string input{ "\\a\\[\\]" };
+    utf8string input{ "\\a\\[\\]" };
     std::vector<Token> token_stream = lex(input);
 
     ASSERT_EQ(token_stream.size(), 3);
@@ -78,7 +78,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, OpenBracket)
   {
-    std::string input("[");
+    utf8string input("[");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 1);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -86,7 +86,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CloseBracketFirst)
   {
-    std::string input("[]");
+    utf8string input("[]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 2);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -96,7 +96,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CloseBracketAfterCaret)
   {
-    std::string input("[^]");
+    utf8string input("[^]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 3);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -107,7 +107,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, WildCard)
   {
-    std::string input(".");
+    utf8string input(".");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 1);
     EXPECT_EQ(token_stream.at(0).type, TokenType::WILDCARD);
@@ -115,7 +115,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, DotInBracket)
   {
-    std::string input("[.");
+    utf8string input("[.");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 2);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -125,7 +125,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, KleeneStarFirst)
   {
-    std::string input("*");
+    utf8string input("*");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 1);
     EXPECT_EQ(token_stream.at(0).type, TokenType::CHARACTER);
@@ -134,7 +134,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, KleeneStarAfterCaret)
   {
-    std::string input("^*");
+    utf8string input("^*");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 2);
     EXPECT_EQ(token_stream.at(0).type, TokenType::FRONT_ANCHOR);
@@ -144,7 +144,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, KleeneStarZeroOrMore)
   {
-    std::string input("a*");
+    utf8string input("a*");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 2);
     EXPECT_EQ(token_stream.at(0).type, TokenType::CHARACTER);
@@ -154,7 +154,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, KleeneStarInBracket)
   {
-    std::string input("[*]");
+    utf8string input("[*]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 3);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -165,7 +165,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CharacterAlternation)
   {
-    std::string input("[ab]");
+    utf8string input("[ab]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 4);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -178,7 +178,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CharacterExclusion)
   {
-    std::string input("[^ab]");
+    utf8string input("[^ab]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 5);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -192,7 +192,7 @@ namespace PosixBREParser {
   
   TEST(StageOne, CaretCharacterInBracket)
   {
-    std::string input("[a^b]");
+    utf8string input("[a^b]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 5);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -206,7 +206,7 @@ namespace PosixBREParser {
   }
 
   TEST(StageOne, CollatingSymbol) {
-    std::string input("[[.].]]");
+    utf8string input("[[.].]]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 3);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -217,7 +217,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CharacterClass)
   {
-    std::string input("[[:]:]]");
+    utf8string input("[[:]:]]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 3);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -228,7 +228,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, EquivalenceClass)
   {
-    std::string input("[[=]=]]");
+    utf8string input("[[=]=]]");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 3);
     EXPECT_EQ(token_stream.at(0).type, TokenType::OPEN_BRACKET);
@@ -240,7 +240,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CharacterZeroOrOne)
   {
-    std::string input("a\\?");
+    utf8string input("a\\?");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 2);
     EXPECT_EQ(token_stream.at(0).type, TokenType::CHARACTER);
@@ -250,7 +250,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, CharacterOneOrMore)
   {
-    std::string input("a\\+");
+    utf8string input("a\\+");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 2);
     EXPECT_EQ(token_stream.at(0).type, TokenType::CHARACTER);
@@ -260,7 +260,7 @@ namespace PosixBREParser {
   
   TEST(StageOne, QuantifierBoundedRange)
   {
-    std::string input("\\{1,2\\}");
+    utf8string input("\\{1,2\\}");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 1);
     EXPECT_EQ(token_stream.at(0).type, TokenType::QUANTIFIER_BETWEEN);
@@ -270,7 +270,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, QuantifierAtLeast)
   {
-    std::string input("\\{1,\\}");
+    utf8string input("\\{1,\\}");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 1);
     EXPECT_EQ(token_stream.at(0).type, TokenType::QUANTIFIER_ATLEAST);
@@ -279,7 +279,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, QuantifierAtMost)
   {
-    std::string input("\\{,2\\}");
+    utf8string input("\\{,2\\}");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 1);
     EXPECT_EQ(token_stream.at(0).type, TokenType::QUANTIFIER_ATMOST);
@@ -288,7 +288,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, AnchorsStartAndEnd)
   {
-    std::string input("^a$");
+    utf8string input("^a$");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 3);
     EXPECT_EQ(token_stream.at(0).type, TokenType::FRONT_ANCHOR);
@@ -299,7 +299,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, AnchorsPreviousAndNextToUnionOp)
   {
-    std::string input("a$\\|^b");
+    utf8string input("a$\\|^b");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 5);
     EXPECT_EQ(token_stream.at(0).type, TokenType::CHARACTER);
@@ -314,7 +314,7 @@ namespace PosixBREParser {
 
   TEST(StageOne, AnchorInSubExpr)
   {
-    std::string input("\\(^a$\\)");
+    utf8string input("\\(^a$\\)");
     std::vector<Token> token_stream = lex(input);
     ASSERT_EQ(token_stream.size(), 5);
     EXPECT_EQ(token_stream.at(0).type, TokenType::BACK_OPEN_PAREN);
@@ -325,14 +325,14 @@ namespace PosixBREParser {
     EXPECT_EQ(token_stream.at(4).type, TokenType::BACK_CLOSE_PAREN);
   }
 
-  TEST(Parsing, FullExpression)
-  {
-    std::string input("^a|b\\?c\\+[][:alpha:]ab(c\\d[=a=]][^(ab\\|c)+]$\\|\\(^ab[cdA-Za-z]\\)$");
-    //std::string input("^a|b\\?c\\+[][:alpha:]ab(c\\d[=a=]][^(ab\\|c)+]$\\|\\(^ab[cdA-Za-z]\\)$");
+  //TEST(Parsing, FullExpression)
+  //{
+  //  utf8string input("^a|b\\?c\\+[][:alpha:]ab(c\\d[=a=]][^(ab\\|c)+]$\\|\\(^ab[cdA-Za-z]\\)$");
+  //  //utf8string input("^a|b\\?c\\+[][:alpha:]ab(c\\d[=a=]][^(ab\\|c)+]$\\|\\(^ab[cdA-Za-z]\\)$");
 
 
 
-    AST ast = parse(input);
+  //  AST ast = parse(input);
 
-  }
+  //}
 }

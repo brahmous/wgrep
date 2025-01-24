@@ -129,15 +129,15 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\engine\engine.vcxproj">
       <Project>{35b8c8d6-c82f-4926-a4f7-b2d8318d708d}</Project>
     </ProjectReference>
     <ProjectReference Include="..\parser\parser.vcxproj">
       <Project>{bf0b819d-1cfc-4085-ad49-d79f325f47b5}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

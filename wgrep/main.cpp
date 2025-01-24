@@ -220,13 +220,6 @@ int main(int argc, char* argv[])
 
   a += "log()";*/
 
-  utf8string str = "hello";
-
-  str[1] = "n";
-
-  std::cout << str << "\n";
-
-  std::sort()
 
   return 0;
 

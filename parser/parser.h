@@ -3,6 +3,7 @@
 #include <string>
 #include <variant>
 #include <memory>
+#include "../wgrep/utf8string.h"
 
 enum class TokenType {
   BACK_OPEN_PAREN,//subexpression
@@ -106,5 +107,5 @@ struct AstQuantifier {
   std::pair<unsigned int, unsigned int> bounds;
 };
 
-std::vector<Token> lex(const std::string&);
+std::vector<Token> lex(utf8string&);
 AST parse(std::string&);

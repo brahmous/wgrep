@@ -2,9 +2,9 @@
 
 #include <string>
 #include <unordered_map>
+#include <iostream>
 
-
-size_t utf8_char_length(unsigned char c) {
+inline size_t utf8_char_length(unsigned char c) {
   if ((c & 0x80) == 0) return 1;            // 1-byte character (ASCII)
   else if ((c & 0xE0) == 0xC0) return 2;    // 2-byte character
   else if ((c & 0xF0) == 0xE0) return 3;    // 3-byte character
@@ -36,6 +36,7 @@ private:
     utf8stringRef& operator=(const std::string& other) {
       size_t oldSize = utf8_char_length(*(mUtf8string.mString.begin()+position));
       size_t newSize = utf8_char_length(other[0]);
+
       /*
         Check that str only holds one character otherwise throw.
       */
@@ -43,13 +44,15 @@ private:
 
       if (diff < 0)
       {
-        std::copy(mUtf8string.mString.begin() + position + oldSize, mUtf8string.mString.end(), mUtf8string.mString.begin() + position + std::abs(diff));
+        std::copy(mUtf8string.mString.begin() + position + oldSize,
+            mUtf8string.mString.end(), mUtf8string.mString.begin() + position + std::abs(diff));
         mUtf8string.mString.resize(mUtf8string.mString.size() - std::abs(diff));
       }
       else if (diff > 0)
       {
         mUtf8string.mString.resize(mUtf8string.mString.size() + std::abs(diff));
-        std::copy_backward(mUtf8string.mString.begin() + position + oldSize, mUtf8string.mString.end() - std::abs(diff), mUtf8string.mString.end());
+        std::copy_backward(mUtf8string.mString.begin() + position + oldSize,
+            mUtf8string.mString.end() - std::abs(diff), mUtf8string.mString.end());
       }
       std::copy(other.begin(), other.end(), mUtf8string.mString.begin() + position);
       return *this;
@@ -61,9 +64,16 @@ private:
       return *this;
     }
 
+    std::string str()
+    {
+      size_t first_byte_index = mUtf8string.mUtf8ToByteIndexMap[position];
+      return std::string(mUtf8string.mString.substr(first_byte_index, utf8_char_length(mUtf8string.mString[first_byte_index])));
+    }
+
     bool operator<(const std::string& str) {
       size_t byteIndex = mUtf8string.mUtf8ToByteIndexMap[position];
-      return mUtf8string.mString.substr(byteIndex, utf8_char_length(mUtf8string.mString[byteIndex])) < str;
+      return mUtf8string.mString.substr(byteIndex,
+          utf8_char_length(mUtf8string.mString[byteIndex])) < str;
     }
 
     bool operator<(const char* str) {
@@ -73,7 +83,8 @@ private:
 
     bool operator>(const std::string& str) {
       size_t byteIndex = mUtf8string.mUtf8ToByteIndexMap[position];
-      return mUtf8string.mString.substr(byteIndex, utf8_char_length(mUtf8string.mString[byteIndex])) > str;
+      return mUtf8string.mString.substr(byteIndex,
+          utf8_char_length(mUtf8string.mString[byteIndex])) > str;
     }
 
     bool operator>(const char* str) {
@@ -103,7 +114,8 @@ private:
 
     bool operator==(const std::string& str) {
       size_t byteIndex = mUtf8string.mUtf8ToByteIndexMap[position];
-      return mUtf8string.mString.substr(byteIndex, utf8_char_length(mUtf8string.mString[byteIndex])) == str;
+      return mUtf8string.mString.substr(byteIndex,
+          utf8_char_length(mUtf8string.mString[byteIndex])) == str;
     }
 
     bool operator==(const char* str) {
@@ -358,15 +370,15 @@ public:
     return mString >= other.mString;
   }
 
-  const std::string& Str() const {
+  const std::string& str() const {
+    return mString;
+  }
+  
+  std::string& str() {
     return mString;
   }
 
-  std::string& Str() {
-    return mString;
-  }
-
-  const size_t Size() const {
+  const size_t size() const {
     return mSize;
   }
 
@@ -374,11 +386,7 @@ public:
     return mSize;
   }
 
-  const bool Empty() const {
-    return mString.size() == 0;
-  }
-
-  bool Empty() {
+  const bool empty() const {
     return mString.size() == 0;
   }
 
@@ -390,15 +398,27 @@ public:
     indexString(mString);
   }
 
+  utf8stringRef at(size_t index) {
+    return utf8stringRef(*this, index);
+  }
+  
+  // TODO ⚠
+  // Do i return a utf8string or a std::string??
+  utf8string substr(size_t index, size_t size) {
+    size_t first_byte_index = mUtf8ToByteIndexMap[index];
+    size_t substring_size = mUtf8ToByteIndexMap[index + size] - first_byte_index;
+    return utf8string(mString.substr(first_byte_index, substring_size));
+  }
+
 };
 
-std::ostream& operator<<(std::ostream& out, const utf8string& string) {
-  out << string.Str();
+inline std::ostream& operator<<(std::ostream& out, const utf8string& string) {
+  out << string.str();
   return out;
 }
 
-std::istream& operator>>(std::istream& in, utf8string& string) {
-  in >> string.Str();
+inline std::istream& operator>>(std::istream& in, utf8string& string) {
+  in >> string.str();
   string.Reload();
   return in;
 }
